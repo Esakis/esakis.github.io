@@ -39,6 +39,19 @@ testem.log
 /typings
 __screenshots__/
 
+# E2E / weryfikacja wizualna (Playwright) i pliki robocze
+/test-results
+/playwright-report
+/playwright/.cache
+/tmp-shots
+tmp-*.mjs
+
+# Zmienne środowiskowe / sekrety
+.env
+.env.*
+!.env.example
+*.local
+
 # System files
 .DS_Store
 Thumbs.db
