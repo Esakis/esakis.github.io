@@ -1406,12 +1406,15 @@
     background-size: 70px 70px;
     mask-image: radial-gradient(circle at 85% 50%, black, transparent 52%);
     opacity: 0.35;
+    /* Dekoracja — nie może przechwytywać dotknięć/kliknięć linków. */
+    pointer-events: none;
   }
 
   &__orb {
     position: absolute;
     top: 50%;
     right: 3%;
+    pointer-events: none;
     width: 340px;
     height: 340px;
     transform: translateY(-50%);
@@ -2153,6 +2156,20 @@
   /* Przyciski z jasnym gradientowym tłem i ciemnym tekstem — bez poświaty. */
   .button--primary,
   .contact__button {
+    text-shadow: none;
+  }
+
+  /* Etykieta „Główny stack" — jaśniejsza, by nie ginęła na mgławicy. */
+  .skills-row > span {
+    color: #d7ddf2;
+  }
+
+  /* Kafelki technologii: przezroczyste na tle gwiazd stają się nieczytelne —
+     dostają ciemne, półprzezroczyste tło pigułki i jaśniejszy tekst. */
+  .skills-list span {
+    border-color: var(--line-strong);
+    background: rgba(6, 8, 20, 0.72);
+    color: #eaf0ff;
     text-shadow: none;
   }
 }
