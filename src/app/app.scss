@@ -52,18 +52,20 @@
 .brand {
   display: inline-flex;
   justify-self: start;
-  align-items: baseline;
+  align-items: center;
   width: max-content;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.08em;
   text-decoration: none;
 
-  &__mark {
-    margin-left: 0.1rem;
-    color: var(--lime);
+  &__logo {
+    display: block;
+    width: 2.75rem;
+    height: 2.75rem;
+    transition: transform 180ms ease;
+  }
+
+  &:hover .brand__logo,
+  &:focus-visible .brand__logo {
+    transform: scale(1.06);
   }
 }
 

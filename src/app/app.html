@@ -6,8 +6,7 @@
 
 <header class="site-header">
   <a class="brand" href="#top" [attr.aria-label]="copy().homeLabel" (click)="closeMenu()">
-    <span aria-hidden="true">{{ profile.initials }}</span
-    ><span class="brand__mark" aria-hidden="true">/</span>
+    <img class="brand__logo" src="logo.svg" alt="" width="44" height="44" />
   </a>
 
   <nav class="desktop-nav" [attr.aria-label]="copy().mainNavigationLabel">
@@ -456,8 +455,7 @@
 <footer class="footer">
   <div class="section-shell footer__inner">
     <a class="brand" href="#top" [attr.aria-label]="copy().homeLabel">
-      <span aria-hidden="true">{{ profile.initials }}</span
-      ><span class="brand__mark" aria-hidden="true">/</span>
+      <img class="brand__logo" src="logo.svg" alt="" width="40" height="40" />
     </a>
     <p>
       © {{ currentYear }} {{ profile.name }}. {{ copy().footerNote }}
