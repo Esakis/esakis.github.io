@@ -224,6 +224,15 @@ export class HelixScroll {
     const direction = Math.sign(event.deltaY);
     if (!direction) return;
 
+    // Przewijanie wewnątrz pola tekstowego z własnym scrollem obsługujemy
+    // natywnie — nie przełączamy wtedy kart helisy.
+    const textarea = (event.target as HTMLElement | null)?.closest('textarea');
+    if (textarea && textarea.scrollHeight > textarea.clientHeight) {
+      const atTop = textarea.scrollTop <= 0;
+      const atBottom = textarea.scrollTop + textarea.clientHeight >= textarea.scrollHeight - 1;
+      if ((direction < 0 && !atTop) || (direction > 0 && !atBottom)) return;
+    }
+
     if (this.inFooterZone()) {
       // W strefie stopki: w dół natywnie, w górę wracamy na ostatnią kartę.
       if (direction < 0) {
@@ -360,12 +369,20 @@ export class HelixScroll {
       return;
     }
 
-    // Przekształcenia 3D mogą kierować kliknięcie w viewport zamiast w link.
-    // Odtwarzamy kliknięcie linku aktywnej karty na podstawie pozycji kursora.
+    // Pola formularza i etykiety obsługujemy natywnie — kliknięcie w nie
+    // ma ustawiać kursor/fokus, a nie powiększać ani zwijać karty.
+    if (target?.closest('input, textarea, select, label')) return;
+
+    // Przekształcenia 3D mogą kierować kliknięcie w viewport zamiast w konkretny
+    // element karty. Odtwarzamy trafienie na podstawie pozycji kursora: linki
+    // i przyciski klikamy, a pola formularza tylko fokusujemy — nigdy nie
+    // powiększamy wtedy karty.
     const activeIndex = Math.round(this.progress());
     const activePanel = this.panels[activeIndex];
-    if (activePanel && !target?.closest('a, button')) {
-      const link = Array.from(activePanel.querySelectorAll<HTMLAnchorElement>('a')).find((item) => {
+    if (activePanel && !target?.closest('a, button, input, textarea, select, label')) {
+      const hit = Array.from(
+        activePanel.querySelectorAll<HTMLElement>('a, button, input, textarea, select'),
+      ).find((item) => {
         const bounds = item.getBoundingClientRect();
         return (
           event.clientX >= bounds.left &&
@@ -374,13 +391,21 @@ export class HelixScroll {
           event.clientY <= bounds.bottom
         );
       });
-      if (link) {
-        link.click();
+      if (hit) {
+        if (
+          hit instanceof HTMLInputElement ||
+          hit instanceof HTMLTextAreaElement ||
+          hit instanceof HTMLSelectElement
+        ) {
+          hit.focus();
+        } else {
+          hit.click(); // link lub przycisk (np. wyślij formularz)
+        }
         return;
       }
     }
 
-    if (target?.closest('a, button')) return;
+    if (target?.closest('a, button, input, textarea, select, label')) return;
 
     // Klik w powiększoną kartę → powrót (przez historię, spójnie z ESC).
     if (this.expandedIndex !== null) {

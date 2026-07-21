@@ -4,12 +4,19 @@ import { SpaceBackground } from './space-background/space-background';
 import { HelixScroll } from './helix-scroll';
 
 type Language = 'pl' | 'en';
+type FormState = 'idle' | 'sending' | 'success' | 'error';
+type FormField = 'name' | 'email' | 'message';
+type FieldError = 'required' | 'email';
+
+// Klucz publiczny Web3Forms (z założenia trafia do bundla frontendu).
+const WEB3FORMS_ACCESS_KEY = 'dfc5ddeb-3ac2-455e-bbbb-996e1cd77cec';
+const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const PROFILE = {
   name: 'Łukasz Sroka Tech',
   initials: 'LS',
   email: 'lukaszsrokatech@gmail.com',
-  contactUrl: 'https://mail.google.com/mail/?view=cm&fs=1&to=lukaszsrokatech%40gmail.com',
   github: 'https://github.com/Esakis',
   projects: [
     {
@@ -162,7 +169,21 @@ const CONTENT = {
     contactHighlight: 'Zbudujmy go.',
     contactText:
       'Napisz, nad czym pracujesz i czego potrzebujesz. Wspólnie ustalimy, jak najlepiej zrealizować Twój projekt.',
-    contactButton: 'Napisz wiadomość',
+    form: {
+      nameLabel: 'Imię',
+      namePlaceholder: 'Jak się do Ciebie zwracać?',
+      emailLabel: 'E-mail',
+      emailPlaceholder: 'twoj@email.pl',
+      messageLabel: 'Wiadomość',
+      messagePlaceholder: 'Napisz, nad czym pracujesz i jak mogę pomóc.',
+      submit: 'Wyślij wiadomość',
+      sending: 'Wysyłanie…',
+      success: 'Dziękuję! Wiadomość została wysłana. Odezwę się najszybciej, jak to możliwe.',
+      error:
+        'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę lub napisz bezpośrednio na podany adres e-mail.',
+      errorRequired: 'To pole jest wymagane.',
+      errorEmail: 'Podaj poprawny adres e-mail.',
+    },
     socialLabel: 'Zobacz także',
     footerNote: 'Aplikacje webowe tworzone z dbałością o detal.',
     backToTop: 'Wróć na górę',
@@ -310,7 +331,21 @@ const CONTENT = {
     contactHighlight: "Let's build it.",
     contactText:
       'Tell me what you are working on and what you need. Together, we can define the best way to deliver your project.',
-    contactButton: 'Send a message',
+    form: {
+      nameLabel: 'Name',
+      namePlaceholder: 'How should I address you?',
+      emailLabel: 'E-mail',
+      emailPlaceholder: 'your@email.com',
+      messageLabel: 'Message',
+      messagePlaceholder: 'Tell me what you are working on and how I can help.',
+      submit: 'Send message',
+      sending: 'Sending…',
+      success: 'Thank you! Your message has been sent. I will get back to you as soon as possible.',
+      error:
+        'The message could not be sent. Please try again shortly or write directly to the e-mail address provided.',
+      errorRequired: 'This field is required.',
+      errorEmail: 'Please enter a valid e-mail address.',
+    },
     socialLabel: 'Also available here',
     footerNote: 'Web applications built with attention to detail.',
     backToTop: 'Back to top',
@@ -332,6 +367,22 @@ export class App {
   protected readonly profile = PROFILE;
   protected readonly currentYear = new Date().getFullYear();
 
+  // Stan formularza kontaktowego.
+  protected readonly contactName = signal('');
+  protected readonly contactEmail = signal('');
+  protected readonly contactMessage = signal('');
+  protected readonly honeypot = signal(''); // pułapka antyspamowa
+  protected readonly formState = signal<FormState>('idle');
+  protected readonly formErrors = signal<Partial<Record<FormField, FieldError>>>({});
+
+  // Sygnały antybotowe: czas pierwszej interakcji z formularzem i liczba
+  // zdarzeń wpisywania. Bot wypełnia pola i klika „wyślij" w ułamku sekundy,
+  // człowiek potrzebuje na to co najmniej kilku sekund pisania.
+  private formFirstInputAt = 0;
+  private formInputEvents = 0;
+  private static readonly MIN_FILL_TIME_MS = 3000;
+  private static readonly MIN_INPUT_EVENTS = 6;
+
   protected setLanguage(language: Language): void {
     this.language.set(language);
     this.document.documentElement.lang = language;
@@ -344,5 +395,89 @@ export class App {
 
   protected closeMenu(): void {
     this.menuOpen.set(false);
+  }
+
+  protected onFieldInput(field: FormField, event: Event): void {
+    const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
+    if (field === 'name') this.contactName.set(value);
+    else if (field === 'email') this.contactEmail.set(value);
+    else this.contactMessage.set(value);
+
+    if (this.formFirstInputAt === 0) this.formFirstInputAt = Date.now();
+    this.formInputEvents++;
+
+    // Czyścimy błąd edytowanego pola oraz status z poprzedniej próby.
+    if (this.formErrors()[field]) {
+      const next = { ...this.formErrors() };
+      delete next[field];
+      this.formErrors.set(next);
+    }
+    if (this.formState() === 'error' || this.formState() === 'success') {
+      this.formState.set('idle');
+    }
+  }
+
+  protected async submitContact(event: Event): Promise<void> {
+    event.preventDefault();
+    if (this.formState() === 'sending') return; // blokada wielokrotnego wysłania
+
+    // Warstwy antyspamowe — botowi udajemy sukces, ale niczego nie wysyłamy:
+    // 1) honeypot: ukryte pole wypełniają tylko boty;
+    // 2) bramka czasowa: wypełnienie i wysłanie szybciej niż w ~3 s to bot;
+    // 3) realne wpisywanie: brak zdarzeń input = wartości wstrzyknięte skryptem.
+    const filledTooFast =
+      this.formFirstInputAt === 0 || Date.now() - this.formFirstInputAt < App.MIN_FILL_TIME_MS;
+    if (
+      this.honeypot().trim() !== '' ||
+      filledTooFast ||
+      this.formInputEvents < App.MIN_INPUT_EVENTS
+    ) {
+      this.formState.set('success');
+      return;
+    }
+
+    const name = this.contactName().trim();
+    const email = this.contactEmail().trim();
+    const message = this.contactMessage().trim();
+
+    const errors: Partial<Record<FormField, FieldError>> = {};
+    if (!name) errors.name = 'required';
+    if (!email) errors.email = 'required';
+    else if (!EMAIL_PATTERN.test(email)) errors.email = 'email';
+    if (!message) errors.message = 'required';
+    this.formErrors.set(errors);
+    if (Object.keys(errors).length > 0) {
+      this.formState.set('idle');
+      return;
+    }
+
+    this.formState.set('sending');
+    try {
+      // FormData (multipart/form-data) to „proste" żądanie — nie wywołuje
+      // preflightu CORS, w przeciwieństwie do application/json.
+      const formData = new FormData();
+      formData.append('access_key', WEB3FORMS_ACCESS_KEY);
+      formData.append('subject', `Nowa wiadomość z portfolio — ${name}`);
+      formData.append('from_name', PROFILE.name);
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('message', message);
+
+      const response = await fetch(WEB3FORMS_ENDPOINT, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = (await response.json()) as { success?: boolean };
+      if (response.ok && data.success) {
+        this.formState.set('success');
+        this.contactName.set('');
+        this.contactEmail.set('');
+        this.contactMessage.set('');
+      } else {
+        this.formState.set('error');
+      }
+    } catch {
+      this.formState.set('error');
+    }
   }
 }

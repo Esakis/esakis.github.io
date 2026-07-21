@@ -154,9 +154,13 @@ export class SpaceBackground {
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       side: THREE.BackSide,
+      // Skybox to tło: nie zapisuje głębi i rysuje się pierwszy, żeby nie
+      // zasłaniał obiektów poza promieniem kuli (np. planet przy krawędzi).
+      depthWrite: false,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = -1;
     // Lekkie przyciemnienie, by treść na pierwszym planie była czytelna.
     material.color.setScalar(0.85);
     // Katalog jasnych gwiazd jako dziecko skyboxa — obraca się razem
@@ -468,10 +472,15 @@ export class SpaceBackground {
     const loader = new GLTFLoader();
 
     const defs = [
-      { file: 'planets/jupiter.glb', radius: 105, pos: [355, 185, -430], speed: 0.05, tilt: 0.06 },
-      { file: 'planets/mars.glb', radius: 34, pos: [-260, 205, -360], speed: 0.08, tilt: 0.4 },
-      { file: 'planets/saturn.glb', radius: 115, pos: [-395, -165, -430], speed: 0.06, tilt: 0.4 },
-      { file: 'planets/neptune.glb', radius: 46, pos: [285, -225, -400], speed: 0.07, tilt: 0.5 },
+      { file: 'planets/jupiter.glb', radius: 105, pos: [355, 185, -430], speed: 0.05, tilt: 0.06, tiltX: 0 },
+      { file: 'planets/mars.glb', radius: 34, pos: [-260, 205, -360], speed: 0.08, tilt: 0.4, tiltX: 0 },
+      // Saturn pochylony też wokół osi X, by pierścienie odchyliły się ku
+      // kamerze i były widoczne (samo pochylenie po Z daje widok krawędziowy).
+      // Uwaga: planety muszą mieścić się w kuli skyboxa (promień 600 od
+      // origin) albo skybox musi mieć depthWrite=false — inaczej jego
+      // tekstura zasłania wszystko poza kulą.
+      { file: 'planets/saturn.glb', radius: 115, pos: [-395, -165, -430], speed: 0.06, tilt: 0.2, tiltX: 0.6 },
+      { file: 'planets/neptune.glb', radius: 46, pos: [285, -225, -400], speed: 0.07, tilt: 0.5, tiltX: 0 },
     ] as const;
 
     for (const def of defs) {
@@ -501,12 +510,20 @@ export class SpaceBackground {
           }
         });
 
+        // Rotacja dobowa na osobnej grupie, wewnątrz której model jest już
+        // wycentrowany — obrót odbywa się wokół środka planety. Obracanie
+        // samego modelu kręciłoby nim wokół origin pliku GLB, który bywa
+        // przesunięty (planeta „krążyłaby" zamiast wirować w miejscu).
+        const spinner = new THREE.Group();
+        spinner.add(model);
+
         const pivot = new THREE.Group();
         pivot.position.set(def.pos[0], def.pos[1], def.pos[2]);
         pivot.rotation.z = def.tilt;
-        pivot.add(model);
+        pivot.rotation.x = def.tiltX;
+        pivot.add(spinner);
         group.add(pivot);
-        this.planetMeshes.push({ mesh: model, speed: def.speed });
+        this.planetMeshes.push({ mesh: spinner, speed: def.speed });
         this.renderFrame();
       });
     }

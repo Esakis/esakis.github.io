@@ -345,28 +345,100 @@
         <div class="contact__grid" aria-hidden="true"></div>
         <div class="contact__orb" aria-hidden="true"></div>
         <div class="section-shell contact__inner">
-          <p class="section-kicker">{{ copy().contactKicker }}</p>
-          <h2 id="contact-title">
-            {{ copy().contactTitle }}
-            <span>{{ copy().contactHighlight }}</span>
-          </h2>
-          <p class="contact__text">{{ copy().contactText }}</p>
-          <a
-            class="contact__button"
-            [href]="profile.contactUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>{{ copy().contactButton }}</span>
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </a>
-          <a
-            class="contact__email"
-            [href]="profile.contactUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ profile.email }}</a
-          >
+          <div class="contact__intro">
+            <p class="section-kicker">{{ copy().contactKicker }}</p>
+            <h2 id="contact-title">
+              {{ copy().contactTitle }}
+              <span>{{ copy().contactHighlight }}</span>
+            </h2>
+            <p class="contact__text">{{ copy().contactText }}</p>
+            <a class="contact__email" [href]="'mailto:' + profile.email">{{ profile.email }}</a>
+          </div>
+
+          <form class="contact__form" (submit)="submitContact($event)" novalidate>
+            <!-- Pułapka antyspamowa: ukryta przed ludźmi, wypełniana przez boty. -->
+            <div class="contact__honeypot" aria-hidden="true">
+              <label
+                >Nie wypełniaj tego pola
+                <input
+                  type="text"
+                  tabindex="-1"
+                  autocomplete="off"
+                  [value]="honeypot()"
+                  (input)="honeypot.set($any($event.target).value)"
+                />
+              </label>
+            </div>
+
+            <div class="contact__field">
+              <label for="contact-name">{{ copy().form.nameLabel }}</label>
+              <input
+                id="contact-name"
+                type="text"
+                name="name"
+                autocomplete="name"
+                [class.is-invalid]="!!formErrors().name"
+                [attr.aria-invalid]="!!formErrors().name || null"
+                [placeholder]="copy().form.namePlaceholder"
+                [value]="contactName()"
+                (input)="onFieldInput('name', $event)"
+              />
+              @if (formErrors().name) {
+                <p class="contact__error">{{ copy().form.errorRequired }}</p>
+              }
+            </div>
+
+            <div class="contact__field">
+              <label for="contact-email">{{ copy().form.emailLabel }}</label>
+              <input
+                id="contact-email"
+                type="email"
+                name="email"
+                autocomplete="email"
+                [class.is-invalid]="!!formErrors().email"
+                [attr.aria-invalid]="!!formErrors().email || null"
+                [placeholder]="copy().form.emailPlaceholder"
+                [value]="contactEmail()"
+                (input)="onFieldInput('email', $event)"
+              />
+              @if (formErrors().email) {
+                <p class="contact__error">
+                  {{ formErrors().email === 'email' ? copy().form.errorEmail : copy().form.errorRequired }}
+                </p>
+              }
+            </div>
+
+            <div class="contact__field">
+              <label for="contact-message">{{ copy().form.messageLabel }}</label>
+              <textarea
+                id="contact-message"
+                name="message"
+                rows="5"
+                [class.is-invalid]="!!formErrors().message"
+                [attr.aria-invalid]="!!formErrors().message || null"
+                [placeholder]="copy().form.messagePlaceholder"
+                [value]="contactMessage()"
+                (input)="onFieldInput('message', $event)"
+              ></textarea>
+              @if (formErrors().message) {
+                <p class="contact__error">{{ copy().form.errorRequired }}</p>
+              }
+            </div>
+
+            <button type="submit" class="contact__button" [disabled]="formState() === 'sending'">
+              <span>{{ formState() === 'sending' ? copy().form.sending : copy().form.submit }}</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+
+            <div class="contact__status" role="status" aria-live="polite">
+              @if (formState() === 'success') {
+                <p class="contact__status--ok">{{ copy().form.success }}</p>
+              } @else if (formState() === 'error') {
+                <p class="contact__status--err">{{ copy().form.error }}</p>
+              }
+            </div>
+          </form>
+
           <div class="contact__socials">
             <p>{{ copy().socialLabel }}</p>
             <div>
