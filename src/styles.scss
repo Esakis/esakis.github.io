@@ -1,14 +1,19 @@
 :root {
-  --ink: #e9ece7;
-  --muted: #929991;
-  --surface: #0b0d0c;
-  --surface-raised: #111412;
-  --line: rgba(233, 236, 231, 0.13);
-  --line-strong: rgba(233, 236, 231, 0.24);
-  --lime: #c7f465;
-  --cyan: #63e6d8;
-  --coral: #ff8066;
+  --ink: #eaf0ff;
+  --muted: #b8c0dc;
+  --surface: #05060f;
+  --surface-raised: #0b0e22;
+  --line: rgba(150, 170, 255, 0.14);
+  --line-strong: rgba(150, 170, 255, 0.26);
+  /* Kosmiczna paleta akcentów (nazwy zachowane dla spójności ze stylami). */
+  --lime: #a78bfa; /* akcent główny — mgławicowy fiolet */
+  --cyan: #56d4ff; /* światło gwiazd — jasny cyan */
+  --coral: #ff7ec8; /* akcent ciepły — mgławicowy róż */
   --purple: #b69cff;
+  --star: #d8e2ff;
+  --glow-violet: rgba(167, 139, 250, 0.5);
+  --glow-cyan: rgba(86, 212, 255, 0.5);
+  --panel: #0e122a;
   --font-sans: 'DM Sans', Arial, sans-serif;
   --font-mono: 'Space Mono', Consolas, monospace;
   color-scheme: dark;
@@ -23,6 +28,7 @@
 }
 
 html {
+  overflow-x: hidden;
   scroll-behavior: smooth;
   scroll-padding-top: 6rem;
 }
@@ -30,11 +36,16 @@ html {
 body {
   min-width: 320px;
   margin: 0;
-  overflow-x: hidden;
-  background: var(--surface);
+  overflow-x: clip;
+  background:
+    radial-gradient(ellipse 80% 60% at 75% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% 110%, rgba(46, 197, 255, 0.12), transparent 60%), #05060f;
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 button,

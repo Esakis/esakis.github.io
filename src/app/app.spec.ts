@@ -19,8 +19,8 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('h1')?.textContent).toContain('Buduję interfejsy');
-    expect(compiled.querySelectorAll('.project-card')).toHaveLength(3);
+    expect(compiled.querySelector('h1')?.textContent).toContain('Tworzę oprogramowanie');
+    expect(compiled.querySelectorAll('.project-card')).toHaveLength(1);
   });
 
   it('should switch the portfolio to English', () => {
@@ -34,7 +34,7 @@ describe('App', () => {
     languageButtons[1].click();
     fixture.detectChanges();
 
-    expect(compiled.querySelector('h1')?.textContent).toContain('I build interfaces');
+    expect(compiled.querySelector('h1')?.textContent).toContain('I build software');
     expect(document.documentElement.lang).toBe('en');
   });
 });

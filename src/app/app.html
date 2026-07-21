@@ -1,3 +1,7 @@
+@defer (on idle) {
+  <app-space-background />
+}
+
 <a class="skip-link" href="#main-content">{{ copy().skipLink }}</a>
 
 <header class="site-header">
@@ -67,292 +71,314 @@
   </nav>
 </header>
 
-<main id="main-content">
-  <section id="top" class="hero section-shell" aria-labelledby="hero-title">
-    <div class="hero__glow hero__glow--one"></div>
-    <div class="hero__glow hero__glow--two"></div>
+<main id="main-content" class="helix" appHelix>
+  <div class="helix-viewport">
+    <div class="helix-stage">
+      <section id="top" class="hero section-shell helix-panel" aria-labelledby="hero-title">
+        <div class="hero__glow hero__glow--one"></div>
+        <div class="hero__glow hero__glow--two"></div>
 
-    <div class="hero__content">
-      <div class="availability"><span></span>{{ copy().availability }}</div>
-      <p class="eyebrow">{{ copy().eyebrow }}</p>
-      <h1 id="hero-title">
-        {{ copy().heroTitle }}
-        <span>{{ copy().heroHighlight }}</span>
-      </h1>
-      <p class="hero__description">{{ copy().heroDescription }}</p>
-      <div class="hero__actions">
-        <a class="button button--primary" href="#projects">
-          {{ copy().heroPrimary }}
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </a>
-        <a class="button button--ghost" href="#contact">{{ copy().heroSecondary }}</a>
-      </div>
-      <p class="hero__note">
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
-          <circle cx="12" cy="10" r="2.5" />
-        </svg>
-        {{ copy().heroNote }}
-      </p>
-    </div>
-
-    <div class="hero__visual" aria-hidden="true">
-      <div class="orbit orbit--outer"></div>
-      <div class="orbit orbit--inner"></div>
-      <div class="terminal-card">
-        <div class="terminal-card__bar">
-          <div><i></i><i></i><i></i></div>
-          <span>{{ copy().terminalLabel }}</span>
-        </div>
-        <div class="terminal-card__body">
-          <p><b>01</b><span class="code-purple">const</span> developer = &#123;</p>
-          <p>
-            <b>02</b>&nbsp;&nbsp;name: <span class="code-green">'{{ profile.name }}'</span>,
+        <div class="hero__content">
+          <div class="availability"><span></span>{{ copy().availability }}</div>
+          <p class="eyebrow">{{ copy().eyebrow }}</p>
+          <h1 id="hero-title">
+            {{ copy().heroTitle }}
+            <span>{{ copy().heroHighlight }}</span>
+          </h1>
+          <p class="hero__description">{{ copy().heroDescription }}</p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#projects">
+              {{ copy().heroPrimary }}
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+            <a class="button button--ghost" href="#contact">{{ copy().heroSecondary }}</a>
+          </div>
+          <p class="hero__note">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+              <circle cx="12" cy="10" r="2.5" />
+            </svg>
+            {{ copy().heroNote }}
           </p>
-          <p>
-            <b>03</b>&nbsp;&nbsp;role: <span class="code-green">'{{ copy().terminalRole }}'</span>,
-          </p>
-          <p><b>04</b>&nbsp;&nbsp;focus: [</p>
-          @for (item of copy().terminalFocus; track item; let last = $last; let index = $index) {
-            <p>
-              <b>0{{ index + 5 }}</b
-              >&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-green">'{{ item }}'</span
-              >{{ last ? '' : ',' }}
-            </p>
-          }
-          <p>
-            <b>08</b>&nbsp;&nbsp;status:
-            <span class="code-cyan">'{{ copy().terminalStatus }}'</span>
-          </p>
-          <p><b>09</b>&#125;;<span class="terminal-cursor"></span></p>
         </div>
-      </div>
-      <div class="floating-tag floating-tag--angular">ng</div>
-      <div class="floating-tag floating-tag--ts">TS</div>
-    </div>
 
-    <a class="scroll-cue" href="#about" [attr.aria-label]="copy().scrollLabel">
-      <span>SCROLL</span>
-      <i></i>
-    </a>
-  </section>
-
-  <section class="stats" aria-label="Career statistics">
-    <div class="section-shell stats__inner">
-      @for (stat of copy().stats; track stat.label) {
-        <div class="stat">
-          <strong>{{ stat.value }}</strong>
-          <span>{{ stat.label }}</span>
-        </div>
-      }
-    </div>
-  </section>
-
-  <section id="about" class="about section-shell section-block" aria-labelledby="about-title">
-    <div class="section-heading section-heading--split">
-      <p class="section-kicker">{{ copy().aboutKicker }}</p>
-      <h2 id="about-title">{{ copy().aboutTitle }}</h2>
-    </div>
-
-    <div class="about__grid">
-      <div class="about__copy">
-        <p class="about__lead">{{ copy().aboutLead }}</p>
-        <p>{{ copy().aboutBody }}</p>
-      </div>
-      <div class="principles">
-        @for (principle of copy().principles; track principle.number) {
-          <article class="principle">
-            <span>{{ principle.number }}</span>
-            <div>
-              <h3>{{ principle.title }}</h3>
-              <p>{{ principle.text }}</p>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="orbit orbit--outer"></div>
+          <div class="orbit orbit--inner"></div>
+          <div class="terminal-card">
+            <div class="terminal-card__bar">
+              <div><i></i><i></i><i></i></div>
+              <span>{{ copy().terminalLabel }}</span>
             </div>
-          </article>
-        }
-      </div>
-    </div>
-
-    <div class="skills-row">
-      <span>{{ copy().skillsLabel }}</span>
-      <div class="skills-list">
-        @for (skill of copy().skills; track skill) {
-          <span>{{ skill }}</span>
-        }
-      </div>
-    </div>
-  </section>
-
-  <section id="projects" class="projects section-block" aria-labelledby="projects-title">
-    <div class="section-shell">
-      <div class="section-heading section-heading--projects">
-        <div>
-          <p class="section-kicker">{{ copy().projectsKicker }}</p>
-          <h2 id="projects-title">{{ copy().projectsTitle }}</h2>
-        </div>
-        <p>{{ copy().projectsIntro }}</p>
-      </div>
-
-      <div class="project-list">
-        @for (project of copy().projects; track project.title; let projectIndex = $index) {
-          <article class="project-card">
-            <div
-              class="project-card__visual"
-              [class]="'project-card__visual project-card__visual--' + project.accent"
-            >
-              <div class="project-card__noise"></div>
-              @if (project.visual === 'dashboard') {
-                <div class="dashboard-mock">
-                  <aside><i></i><i></i><i></i><i></i></aside>
-                  <div class="dashboard-mock__main">
-                    <header><span></span><i></i></header>
-                    <div class="metric-row"><i></i><i></i><i></i></div>
-                    <div class="chart">
-                      <svg viewBox="0 0 300 100" preserveAspectRatio="none">
-                        <path d="M0 84 C40 72, 55 82, 92 56 S145 68, 174 39 S225 51, 300 9" />
-                        <path
-                          class="chart-fill"
-                          d="M0 84 C40 72, 55 82, 92 56 S145 68, 174 39 S225 51, 300 9 V100 H0Z"
-                        />
-                      </svg>
-                    </div>
-                    <div class="table-lines"><i></i><i></i><i></i></div>
-                  </div>
-                </div>
-              } @else if (project.visual === 'booking') {
-                <div class="booking-mock">
-                  <div class="booking-mock__image">
-                    <div class="building"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  </div>
-                  <div class="booking-mock__panel">
-                    <span></span><strong></strong><i></i>
-                    <div><b></b><b></b></div>
-                    <button type="button" tabindex="-1"></button>
-                  </div>
-                </div>
-              } @else {
-                <div class="phone-mock">
-                  <div class="phone-mock__screen">
-                    <header><i></i><span></span></header>
-                    <div class="progress-ring"><strong>72%</strong></div>
-                    <div class="habit-line"><i></i><span></span><b></b></div>
-                    <div class="habit-line"><i></i><span></span><b></b></div>
-                    <div class="habit-line"><i></i><span></span><b></b></div>
-                  </div>
-                </div>
+            <div class="terminal-card__body">
+              <p><b>01</b><span class="code-purple">const</span> company = &#123;</p>
+              <p>
+                <b>02</b>&nbsp;&nbsp;name: <span class="code-green">'{{ profile.name }}'</span>,
+              </p>
+              <p>
+                <b>03</b>&nbsp;&nbsp;service:
+                <span class="code-green">'{{ copy().terminalRole }}'</span>,
+              </p>
+              <p><b>04</b>&nbsp;&nbsp;focus: [</p>
+              @for (
+                item of copy().terminalFocus;
+                track item;
+                let last = $last;
+                let index = $index
+              ) {
+                <p>
+                  <b>0{{ index + 5 }}</b
+                  >&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-green">'{{ item }}'</span
+                  >{{ last ? '' : ',' }}
+                </p>
               }
-              <span class="project-card__number">{{ project.number }}</span>
-            </div>
-
-            <div class="project-card__content">
-              <p class="project-card__category">{{ project.category }}</p>
-              <h3>{{ project.title }}</h3>
-              <p class="project-card__description">{{ project.description }}</p>
-              <p class="project-card__result"><span></span>{{ project.result }}</p>
-              <div class="project-card__tags">
-                @for (tag of project.tags; track tag) {
-                  <span>{{ tag }}</span>
-                }
-              </div>
-              <div class="project-card__links">
-                <a
-                  [href]="profile.projects[projectIndex].liveUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {{ copy().projectLive }}
-                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9" /></svg>
-                </a>
-                <a
-                  [href]="profile.projects[projectIndex].codeUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {{ copy().projectCode }}
-                  <svg aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="m9 18-6-6 6-6M15 6l6 6-6 6" />
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </article>
-        }
-      </div>
-    </div>
-  </section>
-
-  <section
-    id="experience"
-    class="experience section-shell section-block"
-    aria-labelledby="experience-title"
-  >
-    <div class="section-heading section-heading--split">
-      <p class="section-kicker">{{ copy().experienceKicker }}</p>
-      <h2 id="experience-title">{{ copy().experienceTitle }}</h2>
-    </div>
-
-    <div class="timeline">
-      @for (job of copy().experience; track job.period; let first = $first) {
-        <article class="timeline-item" [class.is-current]="first">
-          <p class="timeline-item__period">{{ job.period }}</p>
-          <div class="timeline-item__marker"><span></span></div>
-          <div class="timeline-item__content">
-            <p>{{ job.company }}</p>
-            <h3>{{ job.role }}</h3>
-            <p class="timeline-item__description">{{ job.description }}</p>
-            <div>
-              @for (highlight of job.highlights; track highlight) {
-                <span>{{ highlight }}</span>
-              }
+              <p>
+                <b>08</b>&nbsp;&nbsp;status:
+                <span class="code-cyan">'{{ copy().terminalStatus }}'</span>
+              </p>
+              <p><b>09</b>&#125;;<span class="terminal-cursor"></span></p>
             </div>
           </div>
-        </article>
-      }
-    </div>
-
-    <div class="process">
-      <p class="process__label">{{ copy().processLabel }}</p>
-      <div class="process__grid">
-        @for (step of copy().process; track step.number) {
-          <article>
-            <span>{{ step.number }}</span>
-            <h3>{{ step.title }}</h3>
-            <p>{{ step.text }}</p>
-          </article>
-        }
-      </div>
-    </div>
-  </section>
-
-  <section id="contact" class="contact section-block" aria-labelledby="contact-title">
-    <div class="contact__grid" aria-hidden="true"></div>
-    <div class="contact__orb" aria-hidden="true"></div>
-    <div class="section-shell contact__inner">
-      <p class="section-kicker">{{ copy().contactKicker }}</p>
-      <h2 id="contact-title">
-        {{ copy().contactTitle }}
-        <span>{{ copy().contactHighlight }}</span>
-      </h2>
-      <p class="contact__text">{{ copy().contactText }}</p>
-      <a class="contact__button" [href]="'mailto:' + profile.email">
-        <span>{{ copy().contactButton }}</span>
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-      </a>
-      <a class="contact__email" [href]="'mailto:' + profile.email">{{ profile.email }}</a>
-      <div class="contact__socials">
-        <p>{{ copy().socialLabel }}</p>
-        <div>
-          <a [href]="profile.linkedin" target="_blank" rel="noopener noreferrer"
-            >LinkedIn <span>↗</span></a
-          >
-          <a [href]="profile.github" target="_blank" rel="noopener noreferrer"
-            >GitHub <span>↗</span></a
-          >
+          <div class="floating-tag floating-tag--angular">ng</div>
+          <div class="floating-tag floating-tag--ts">TS</div>
         </div>
-      </div>
+
+        <a class="scroll-cue" href="#about" [attr.aria-label]="copy().scrollLabel">
+          <span>SCROLL</span>
+          <i></i>
+        </a>
+      </section>
+
+      <section class="stats helix-panel" [attr.aria-label]="copy().statisticsLabel">
+        <div class="section-shell stats__inner">
+          @for (stat of copy().stats; track stat.label) {
+            <div class="stat">
+              <strong>{{ stat.value }}</strong>
+              <span>{{ stat.label }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section
+        id="about"
+        class="about section-shell section-block helix-panel"
+        aria-labelledby="about-title"
+      >
+        <div class="section-heading section-heading--split">
+          <p class="section-kicker">{{ copy().aboutKicker }}</p>
+          <h2 id="about-title">{{ copy().aboutTitle }}</h2>
+        </div>
+
+        <div class="about__grid">
+          <div class="about__copy">
+            <p class="about__lead">{{ copy().aboutLead }}</p>
+            <p>{{ copy().aboutBody }}</p>
+          </div>
+          <div class="principles">
+            @for (principle of copy().principles; track principle.number) {
+              <article class="principle">
+                <span>{{ principle.number }}</span>
+                <div>
+                  <h3>{{ principle.title }}</h3>
+                  <p>{{ principle.text }}</p>
+                </div>
+              </article>
+            }
+          </div>
+        </div>
+
+        <div class="skills-row">
+          <span>{{ copy().skillsLabel }}</span>
+          <div class="skills-list">
+            @for (skill of copy().skills; track skill) {
+              <span>{{ skill }}</span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="projects"
+        class="projects section-block helix-panel"
+        aria-labelledby="projects-title"
+      >
+        <div class="section-shell">
+          <div class="section-heading section-heading--projects">
+            <div>
+              <p class="section-kicker">{{ copy().projectsKicker }}</p>
+              <h2 id="projects-title">{{ copy().projectsTitle }}</h2>
+            </div>
+            <p>{{ copy().projectsIntro }}</p>
+          </div>
+
+          <div class="project-list">
+            @for (project of copy().projects; track project.title; let projectIndex = $index) {
+              <article class="project-card">
+                <div
+                  class="project-card__visual"
+                  [class]="'project-card__visual project-card__visual--' + project.accent"
+                >
+                  <div class="project-card__noise"></div>
+                  @if (project.visual === 'dashboard') {
+                    <div class="dashboard-mock">
+                      <aside><i></i><i></i><i></i><i></i></aside>
+                      <div class="dashboard-mock__main">
+                        <header><span></span><i></i></header>
+                        <div class="metric-row"><i></i><i></i><i></i></div>
+                        <div class="chart">
+                          <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                            <path d="M0 84 C40 72, 55 82, 92 56 S145 68, 174 39 S225 51, 300 9" />
+                            <path
+                              class="chart-fill"
+                              d="M0 84 C40 72, 55 82, 92 56 S145 68, 174 39 S225 51, 300 9 V100 H0Z"
+                            />
+                          </svg>
+                        </div>
+                        <div class="table-lines"><i></i><i></i><i></i></div>
+                      </div>
+                    </div>
+                  } @else if (project.visual === 'booking') {
+                    <div class="booking-mock">
+                      <div class="booking-mock__image">
+                        <div class="building"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      </div>
+                      <div class="booking-mock__panel">
+                        <span></span><strong></strong><i></i>
+                        <div><b></b><b></b></div>
+                        <button type="button" tabindex="-1"></button>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="phone-mock">
+                      <div class="phone-mock__screen">
+                        <header><i></i><span></span></header>
+                        <div class="progress-ring"><strong>72%</strong></div>
+                        <div class="habit-line"><i></i><span></span><b></b></div>
+                        <div class="habit-line"><i></i><span></span><b></b></div>
+                        <div class="habit-line"><i></i><span></span><b></b></div>
+                      </div>
+                    </div>
+                  }
+                  <span class="project-card__number">{{ project.number }}</span>
+                </div>
+
+                <div class="project-card__content">
+                  <p class="project-card__category">{{ project.category }}</p>
+                  <h3>{{ project.title }}</h3>
+                  <p class="project-card__description">{{ project.description }}</p>
+                  <p class="project-card__result"><span></span>{{ project.result }}</p>
+                  <div class="project-card__tags">
+                    @for (tag of project.tags; track tag) {
+                      <span>{{ tag }}</span>
+                    }
+                  </div>
+                  <div class="project-card__links">
+                    <a
+                      [href]="profile.projects[projectIndex].liveUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ copy().projectLive }}
+                      <svg aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M7 17 17 7M8 7h9v9" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="experience"
+        class="experience section-shell section-block helix-panel"
+        aria-labelledby="experience-title"
+      >
+        <div class="section-heading section-heading--split">
+          <p class="section-kicker">{{ copy().experienceKicker }}</p>
+          <h2 id="experience-title">{{ copy().experienceTitle }}</h2>
+        </div>
+
+        <div class="timeline">
+          @for (job of copy().experience; track job.period; let first = $first) {
+            <article class="timeline-item" [class.is-current]="first">
+              <p class="timeline-item__period">{{ job.period }}</p>
+              <div class="timeline-item__marker"><span></span></div>
+              <div class="timeline-item__content">
+                <p>{{ job.company }}</p>
+                <h3>{{ job.role }}</h3>
+                <p class="timeline-item__description">{{ job.description }}</p>
+                <div>
+                  @for (highlight of job.highlights; track highlight) {
+                    <span>{{ highlight }}</span>
+                  }
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+
+        <div class="process">
+          <p class="process__label">{{ copy().processLabel }}</p>
+          <div class="process__grid">
+            @for (step of copy().process; track step.number) {
+              <article>
+                <span>{{ step.number }}</span>
+                <h3>{{ step.title }}</h3>
+                <p>{{ step.text }}</p>
+              </article>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="contact"
+        class="contact section-block helix-panel"
+        aria-labelledby="contact-title"
+      >
+        <div class="contact__grid" aria-hidden="true"></div>
+        <div class="contact__orb" aria-hidden="true"></div>
+        <div class="section-shell contact__inner">
+          <p class="section-kicker">{{ copy().contactKicker }}</p>
+          <h2 id="contact-title">
+            {{ copy().contactTitle }}
+            <span>{{ copy().contactHighlight }}</span>
+          </h2>
+          <p class="contact__text">{{ copy().contactText }}</p>
+          <a
+            class="contact__button"
+            [href]="profile.contactUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span>{{ copy().contactButton }}</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </a>
+          <a
+            class="contact__email"
+            [href]="profile.contactUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ profile.email }}</a
+          >
+          <div class="contact__socials">
+            <p>{{ copy().socialLabel }}</p>
+            <div>
+              <a [href]="profile.github" target="_blank" rel="noopener noreferrer"
+                >GitHub <span>↗</span></a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
-  </section>
+  </div>
 </main>
 
 <footer class="footer">
@@ -361,7 +387,17 @@
       <span aria-hidden="true">{{ profile.initials }}</span
       ><span class="brand__mark" aria-hidden="true">/</span>
     </a>
-    <p>© {{ currentYear }} {{ profile.name }}. {{ copy().footerNote }}</p>
+    <p>
+      © {{ currentYear }} {{ profile.name }}. {{ copy().footerNote }}
+      <span class="footer__credit"
+        >Droga Mleczna: ESO/S. Brunier (<a
+          href="https://creativecommons.org/licenses/by/4.0/"
+          target="_blank"
+          rel="noopener noreferrer"
+          >CC BY 4.0</a
+        >) · Modele planet: NASA</span
+      >
+    </p>
     <a href="#top">{{ copy().backToTop }} <span aria-hidden="true">↑</span></a>
   </div>
 </footer>
