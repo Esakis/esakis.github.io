@@ -266,7 +266,15 @@
 
                 <div class="project-card__content">
                   <p class="project-card__category">{{ project.category }}</p>
-                  <h3>{{ project.title }}</h3>
+                  <h3>
+                    <a
+                      class="project-card__title-link"
+                      [href]="profile.projects[projectIndex].liveUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >{{ project.title }}</a
+                    >
+                  </h3>
                   <p class="project-card__description">{{ project.description }}</p>
                   <p class="project-card__result"><span></span>{{ project.result }}</p>
                   <div class="project-card__tags">
