@@ -188,6 +188,10 @@
 
     span {
       display: block;
+      /* Zapas na dolne wydłużenia liter (j, g, p, y): przy line-height < 1
+         tło clip-text kończy się nad nimi i litery wyglądają na ucięte. */
+      padding-bottom: 0.18em;
+      margin-bottom: -0.18em;
       background: linear-gradient(100deg, var(--cyan) 0%, var(--lime) 50%, var(--coral) 100%);
       background-clip: text;
       -webkit-background-clip: text;
@@ -1444,6 +1448,9 @@
 
     span {
       display: block;
+      /* Zapas na dolne wydłużenia liter — jak w hero. */
+      padding-bottom: 0.18em;
+      margin-bottom: -0.18em;
       background: linear-gradient(100deg, var(--cyan), var(--lime) 55%, var(--coral));
       background-clip: text;
       -webkit-background-clip: text;
