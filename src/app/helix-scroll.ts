@@ -1,5 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
-import { afterNextRender, Directive, ElementRef, inject, PLATFORM_ID } from '@angular/core';
+import { afterNextRender, Directive, effect, ElementRef, inject, PLATFORM_ID } from '@angular/core';
+import { WebglAvailability } from './webgl-availability';
 
 /**
  * Karuzela-helisa 3D: sekcje krążą wokół centralnego słupa Drogi Mlecznej,
@@ -13,7 +14,7 @@ import { afterNextRender, Directive, ElementRef, inject, PLATFORM_ID } from '@an
  * Panel na wprost jest w pełni widoczny i klikalny; poprzedni i następny
  * pozostają czytelnie widoczne po bokach słupa. Na wąskich ekranach oraz
  * przy `prefers-reduced-motion` helisa przechodzi w zwykły układ pionowy
- * (klasa `helix--flat`).
+ * (klasa `helix--enabled` jest dodawana po udanym starcie WebGL).
  */
 @Directive({
   selector: '[appHelix]',
@@ -21,6 +22,7 @@ import { afterNextRender, Directive, ElementRef, inject, PLATFORM_ID } from '@an
 export class HelixScroll {
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly webglAvailability = inject(WebglAvailability);
 
   // Geometria helisy.
   private readonly STEP = 60; // stopnie obrotu między panelami (6×60=360)
@@ -34,7 +36,8 @@ export class HelixScroll {
   private spanPx = 0;
   private radius = 1123; // promień cylindra (px), liczony z szerokości panelu
   private frameId = 0;
-  private flat = false;
+  private flat = true;
+  private initialized = false;
   private cleanupFns: Array<() => void> = [];
 
   // Stan stronicowania (snap).
@@ -53,6 +56,10 @@ export class HelixScroll {
   private resizeFrameId = 0;
 
   constructor() {
+    effect(() => {
+      this.webglAvailability.isAvailable();
+      if (this.initialized) this.updateMode();
+    });
     afterNextRender(() => {
       if (isPlatformBrowser(this.platformId)) this.init();
     });
@@ -65,13 +72,15 @@ export class HelixScroll {
     if (!this.stage || this.panels.length === 0) return;
 
     this.evaluateMode();
+    this.initialized = true;
 
     const onResize = () => {
       cancelAnimationFrame(this.resizeFrameId);
       this.resizeFrameId = requestAnimationFrame(() => {
         if (this.expandedIndex !== null) this.collapseNow();
-        this.evaluateMode();
+        const modeChanged = this.evaluateMode();
         this.layout();
+        if (modeChanged && !this.flat) this.navigateToHash(false);
         this.requestUpdate();
       });
     };
@@ -112,9 +121,14 @@ export class HelixScroll {
     document.addEventListener('mousemove', onMouseMove);
     this.cleanupFns.push(() => document.removeEventListener('mousemove', onMouseMove));
 
-    // Strzałka wstecz przeglądarki zamyka powiększoną kartę.
+    const onHashChange = () => this.navigateToHash(true);
+    window.addEventListener('hashchange', onHashChange);
+    this.cleanupFns.push(() => window.removeEventListener('hashchange', onHashChange));
+
+    // Strzałka wstecz przeglądarki zamyka powiększoną kartę albo przywraca kotwicę.
     const onPopState = () => {
       if (this.expandedIndex !== null) this.collapseNow();
+      else this.navigateToHash(true);
     };
     window.addEventListener('popstate', onPopState);
     this.cleanupFns.push(() => window.removeEventListener('popstate', onPopState));
@@ -122,14 +136,26 @@ export class HelixScroll {
     this.layout();
     this.index = Math.round(this.progress());
     this.update();
+    if (!this.flat) this.navigateToHash(false);
   }
 
   /** Decyduje, czy używać helisy, czy płaskiego układu awaryjnego. */
-  private evaluateMode(): void {
+  private evaluateMode(): boolean {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
     const narrow = window.innerWidth <= 1000;
-    this.flat = reduced || narrow;
-    this.host.nativeElement.classList.toggle('helix--flat', this.flat);
+    const nextFlat = !this.webglAvailability.isAvailable() || reduced || narrow;
+    const changed = nextFlat !== this.flat;
+    this.flat = nextFlat;
+    this.host.nativeElement.classList.toggle('helix--enabled', !this.flat);
+    return changed;
+  }
+
+  private updateMode(): void {
+    if (this.expandedIndex !== null) this.collapseNow();
+    const modeChanged = this.evaluateMode();
+    this.layout();
+    if (modeChanged && !this.flat) this.navigateToHash(false);
+    this.requestUpdate();
   }
 
   /** Ustala statyczne pozycje paneli na cylindrze i wysokość toru scrolla. */
@@ -377,24 +403,39 @@ export class HelixScroll {
     this.animFrameId = requestAnimationFrame(frame);
   }
 
+  private scrollToIndex(index: number): void {
+    const top = this.host.nativeElement.offsetTop + index * this.spanPx;
+    window.scrollTo({ top, behavior: 'instant' });
+    this.index = index;
+    this.update(true);
+  }
+
   /** Obsługa kliknięć: linki kotwiczące oraz powiększanie aktywnej karty. */
   private onClick(event: MouseEvent): void {
     if (this.flat) return;
     const target = event.target as HTMLElement | null;
 
-    // Linki kotwiczące (#id) → animacja do właściwego panelu.
-    const anchor = target?.closest<HTMLAnchorElement>('a[href^="#"]');
-    if (anchor) {
-      const id = anchor.getAttribute('href')?.slice(1) ?? '';
-      if (!id || id === 'main-content') return;
-      const index = this.panels.findIndex((panel) => panel.id === id);
-      if (index < 0) return;
+    // Linki kotwiczące do tego samego dokumentu → animacja do właściwego panelu.
+    const anchor = target?.closest<HTMLAnchorElement>('a[href]');
+    const index = anchor ? this.panelIndexFromAnchor(anchor) : -1;
+    if (
+      anchor &&
+      index >= 0 &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !anchor.target &&
+      !anchor.hasAttribute('download')
+    ) {
       event.preventDefault();
       if (this.expandedIndex !== null) {
         // Najpierw zamknij powiększenie; nawigacja przy kolejnym kliknięciu.
         history.back();
         return;
       }
+      history.pushState(null, '', anchor.hash);
       this.animateToIndex(index);
       return;
     }
@@ -464,6 +505,37 @@ export class HelixScroll {
     ) {
       this.expand(activeIndex);
     }
+  }
+
+  private panelIndexFromAnchor(anchor: HTMLAnchorElement): number {
+    const url = new URL(anchor.href, window.location.href);
+    if (
+      url.origin !== window.location.origin ||
+      url.pathname !== window.location.pathname ||
+      url.search !== window.location.search
+    ) {
+      return -1;
+    }
+    return this.panelIndexFromHash(url.hash);
+  }
+
+  private panelIndexFromHash(hash: string): number {
+    if (!hash || hash === '#') return -1;
+    try {
+      const id = decodeURIComponent(hash.slice(1));
+      return this.panels.findIndex((panel) => panel.id === id);
+    } catch {
+      return -1;
+    }
+  }
+
+  /** W trybie pionowym przeglądarka obsługuje kotwice natywnie. */
+  private navigateToHash(animate: boolean): void {
+    if (this.flat) return;
+    const index = this.panelIndexFromHash(window.location.hash);
+    if (index < 0) return;
+    if (animate) this.animateToIndex(index);
+    else this.scrollToIndex(index);
   }
 
   private updateLinkHover(event: MouseEvent): void {

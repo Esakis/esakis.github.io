@@ -1561,28 +1561,41 @@
 }
 
 .helix-viewport {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100svh;
-  overflow: hidden;
-  perspective: 1400px;
-  perspective-origin: 50% 50%;
+  position: static;
+  height: auto;
+  overflow: visible;
+  perspective: none;
 }
 
 /* W trybie 3D dotyk obsługuje stronicowanie kart, nie natywny scroll. */
-.helix:not(.helix--flat) .helix-viewport {
+.helix--enabled .helix-viewport {
   touch-action: none;
 }
 
 .helix-stage {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  will-change: transform;
+  position: static;
+  transform-style: flat;
+  will-change: auto;
 }
 
-.helix:not(.helix--flat) {
+.helix--enabled {
+  .helix-viewport {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
+  }
+
+  .helix-stage {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
   /* Uwaga na kaskadę: te reguły muszą stać PRZED `.helix-panel`, bo hero
      i inne sekcje mają obie klasy (równa specyficzność → wygrywa późniejsza),
      a szerokość karty ma pochodzić z `.helix-panel`. */
@@ -1943,8 +1956,8 @@
   }
 }
 
-/* Tryb płaski (mobile / reduced-motion) — powrót do zwykłego układu. */
-.helix--flat {
+/* Domyślny fallback (brak WebGL / mobile / reduced-motion) — zwykły dokument. */
+.helix:not(.helix--enabled) {
   height: auto !important;
 
   .helix-viewport {
@@ -2120,7 +2133,7 @@
     }
   }
 
-  .helix--flat .helix-panel {
+  .helix:not(.helix--enabled) .helix-panel {
     text-shadow:
       0 2px 6px rgba(3, 4, 12, 1),
       0 0 18px rgba(3, 4, 12, 0.95);

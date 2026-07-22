@@ -10,6 +10,7 @@ import {
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { EffectsProfile, getEffectsProfile } from '../effects-policy';
+import { WebglAvailability } from '../webgl-availability';
 
 interface SceneQuality {
   antialias: boolean;
@@ -97,6 +98,7 @@ export class SpaceBackground {
   private readonly canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly webglAvailability = inject(WebglAvailability);
 
   private renderer?: THREE.WebGLRenderer;
   private scene?: THREE.Scene;
@@ -119,6 +121,7 @@ export class SpaceBackground {
   private elapsed = 0;
   private isDocumentVisible = true;
   private destroyed = false;
+  private webglUnavailable = false;
   private resizeFrameId = 0;
   private lastRenderTime = 0;
   private quality = SCENE_QUALITY.full;
@@ -133,35 +136,40 @@ export class SpaceBackground {
     const canvas = this.canvasRef().nativeElement;
     this.quality = SCENE_QUALITY[getEffectsProfile()];
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: this.quality.antialias,
-      alpha: true,
-      powerPreference: this.quality.powerPreference,
-    });
-    renderer.setClearColor(0x03040c, 1);
-    this.renderer = renderer;
+    try {
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: this.quality.antialias,
+        alpha: true,
+        powerPreference: this.quality.powerPreference,
+      });
+      renderer.setClearColor(0x03040c, 1);
+      this.renderer = renderer;
 
-    const scene = new THREE.Scene();
-    this.scene = scene;
+      const scene = new THREE.Scene();
+      this.scene = scene;
 
-    const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 2000);
-    camera.position.set(0, 0, 0.1);
-    this.camera = camera;
+      const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 2000);
+      camera.position.set(0, 0, 0.1);
+      this.camera = camera;
 
-    scene.add(this.buildSkybox());
-    scene.add(this.buildPillar());
-    scene.add(this.buildForegroundStars());
-    if (this.quality.loadPlanets) {
-      scene.add(this.buildPlanets());
-      this.addLights(scene);
+      scene.add(this.buildSkybox());
+      scene.add(this.buildPillar());
+      scene.add(this.buildForegroundStars());
+      if (this.quality.loadPlanets) {
+        scene.add(this.buildPlanets());
+        this.addLights(scene);
+      }
+
+      this.resize();
+      this.bindEvents();
+      this.renderFrame();
+      this.webglAvailability.setAvailable(true);
+
+      if (this.quality.animate) this.loop();
+    } catch {
+      this.disableWebgl();
     }
-
-    this.resize();
-    this.bindEvents();
-
-    if (this.quality.animate) this.loop();
-    else this.renderFrame();
   }
 
   /**
@@ -258,7 +266,12 @@ export class SpaceBackground {
   private buildSkybox(): THREE.Mesh {
     const geometry = new THREE.SphereGeometry(600, ...this.quality.skySegments);
     const loader = new THREE.TextureLoader();
-    const texture = loader.load('textures/milky_way.jpg', () => this.renderFrame());
+    const texture = loader.load(
+      'textures/milky_way.jpg',
+      () => this.renderFrame(),
+      undefined,
+      () => this.renderFrame(),
+    );
     texture.colorSpace = THREE.SRGBColorSpace;
 
     const material = new THREE.MeshBasicMaterial({
@@ -595,44 +608,49 @@ export class SpaceBackground {
     ] as const;
 
     for (const def of defs) {
-      loader.load(def.file, (gltf) => {
-        const model = gltf.scene;
+      loader.load(
+        def.file,
+        (gltf) => {
+          const model = gltf.scene;
 
-        // Normalizacja: wyśrodkuj model i przeskaluj do zadanego promienia.
-        const sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
-        const scale = def.radius / sphere.radius;
-        model.scale.setScalar(scale);
-        model.position.copy(sphere.center).multiplyScalar(-scale);
+          // Normalizacja: wyśrodkuj model i przeskaluj do zadanego promienia.
+          const sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
+          const scale = def.radius / sphere.radius;
+          model.scale.setScalar(scale);
+          model.position.copy(sphere.center).multiplyScalar(-scale);
 
-        // Zarejestruj zasoby GPU modelu do zwolnienia przy zniszczeniu.
-        model.traverse((node) => {
-          if (node instanceof THREE.Mesh) {
-            this.disposables.push(node.geometry);
-            const materials = Array.isArray(node.material) ? node.material : [node.material];
-            for (const material of materials) {
-              this.disposables.push(material);
-              const map = (material as THREE.MeshStandardMaterial).map;
-              if (map) this.disposables.push(map);
+          // Zarejestruj zasoby GPU modelu do zwolnienia przy zniszczeniu.
+          model.traverse((node) => {
+            if (node instanceof THREE.Mesh) {
+              this.disposables.push(node.geometry);
+              const materials = Array.isArray(node.material) ? node.material : [node.material];
+              for (const material of materials) {
+                this.disposables.push(material);
+                const map = (material as THREE.MeshStandardMaterial).map;
+                if (map) this.disposables.push(map);
+              }
             }
-          }
-        });
+          });
 
-        // Rotacja dobowa na osobnej grupie, wewnątrz której model jest już
-        // wycentrowany — obrót odbywa się wokół środka planety. Obracanie
-        // samego modelu kręciłoby nim wokół origin pliku GLB, który bywa
-        // przesunięty (planeta „krążyłaby" zamiast wirować w miejscu).
-        const spinner = new THREE.Group();
-        spinner.add(model);
+          // Rotacja dobowa na osobnej grupie, wewnątrz której model jest już
+          // wycentrowany — obrót odbywa się wokół środka planety. Obracanie
+          // samego modelu kręciłoby nim wokół origin pliku GLB, który bywa
+          // przesunięty (planeta „krążyłaby" zamiast wirować w miejscu).
+          const spinner = new THREE.Group();
+          spinner.add(model);
 
-        const pivot = new THREE.Group();
-        pivot.position.set(def.pos[0], def.pos[1], def.pos[2]);
-        pivot.rotation.z = def.tilt;
-        pivot.rotation.x = def.tiltX;
-        pivot.add(spinner);
-        group.add(pivot);
-        this.planetMeshes.push({ mesh: spinner, speed: def.speed });
-        this.renderFrame();
-      });
+          const pivot = new THREE.Group();
+          pivot.position.set(def.pos[0], def.pos[1], def.pos[2]);
+          pivot.rotation.z = def.tilt;
+          pivot.rotation.x = def.tiltX;
+          pivot.add(spinner);
+          group.add(pivot);
+          this.planetMeshes.push({ mesh: spinner, speed: def.speed });
+          this.renderFrame();
+        },
+        undefined,
+        () => this.renderFrame(),
+      );
     }
 
     return group;
@@ -707,6 +725,11 @@ export class SpaceBackground {
   }
 
   private bindEvents(): void {
+    const canvas = this.canvasRef().nativeElement;
+    const onContextLost = () => this.disableWebgl(true);
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    this.cleanupFns.push(() => canvas.removeEventListener('webglcontextlost', onContextLost));
+
     const onResize = () => {
       cancelAnimationFrame(this.resizeFrameId);
       this.resizeFrameId = requestAnimationFrame(() => {
@@ -768,7 +791,7 @@ export class SpaceBackground {
   }
 
   private loop = (timestamp = performance.now()): void => {
-    if (this.destroyed || !this.isDocumentVisible) return;
+    if (this.destroyed || this.webglUnavailable || !this.isDocumentVisible) return;
     this.frameId = requestAnimationFrame(this.loop);
 
     if (this.quality.maxFps > 0 && this.lastRenderTime > 0) {
@@ -821,16 +844,32 @@ export class SpaceBackground {
     }
   }
 
-  ngOnDestroy(): void {
-    this.destroyed = true;
+  /** Stops WebGL work and leaves the CSS background as the static fallback. */
+  private disableWebgl(contextAlreadyLost = false): void {
+    if (this.webglUnavailable) return;
+    this.webglUnavailable = true;
+    this.webglAvailability.setAvailable(false);
+    this.releaseWebgl(!contextAlreadyLost);
+  }
+
+  private releaseWebgl(forceContextLoss: boolean): void {
     cancelAnimationFrame(this.frameId);
     cancelAnimationFrame(this.resizeFrameId);
-    this.cleanupFns.forEach((fn) => fn());
-    this.disposables.forEach((item) => item.dispose());
+    this.cleanupFns.splice(0).forEach((fn) => fn());
+    this.disposables.splice(0).forEach((item) => item.dispose());
     this.renderer?.renderLists.dispose();
-    this.renderer?.forceContextLoss();
+    if (forceContextLoss) this.renderer?.forceContextLoss();
     this.renderer?.dispose();
     this.scene?.clear();
+    this.renderer = undefined;
+    this.scene = undefined;
+    this.camera = undefined;
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    this.webglAvailability.setAvailable(false);
+    this.releaseWebgl(true);
     this.planetMeshes = [];
   }
 }
