@@ -8,8 +8,8 @@ Dwujęzyczne portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe 
 
 - statycznie prerenderowane wersje polska i angielska z osobnymi metadanymi SEO,
 - helisa 3D na szerokich ekranach i czytelny układ pionowy na urządzeniach mobilnych,
-- kosmiczne tło Three.js reagujące na przewijanie i położenie wskaźnika,
-- automatyczne pomijanie modeli planet przy `prefers-reduced-motion`, `Save-Data` lub ograniczonych zasobach urządzenia,
+- kosmiczne tło Three.js z pełnym profilem desktopowym i lżejszym profilem mobilnym,
+- automatyczne ograniczanie modeli, cząstek, rozdzielczości i liczby klatek przy `Save-Data` lub ograniczonych zasobach urządzenia,
 - aktywny znacznik aktualnego etapu usług podczas przewijania strony na telefonie,
 - formularz kontaktowy z walidacją i obsługą stanów wysyłania.
 
@@ -51,7 +51,7 @@ Workflow GitHub Actions w `.github/workflows/deploy.yml` uruchamia `npm ci`, tes
 ```text
 src/app/app.*                 komponent aplikacji, treści, responsywność i formularz
 src/app/helix-scroll.ts       przejścia pomiędzy sekcjami na helisie 3D
-src/app/effects-policy.ts     decyzja o pominięciu cięższych modeli planet
+src/app/effects-policy.ts     wybór profilu efektów full, compact lub static
 src/app/space-background/     scena Three.js i modele planet
 public/                       obrazy, modele 3D, robots.txt i sitemap.xml
 .github/workflows/            testy, build i wdrożenie GitHub Pages
@@ -64,6 +64,12 @@ Portfolio ma prerenderowane wersje: [polską](https://esakis.github.io/pl/) i [a
 ## Responsywność i dostępność
 
 Na telefonach helisa przechodzi w pionowy układ, numeracja elementów zachowuje jeden styl, a aktywna kropka osi usług podąża za aktualnie oglądaną pozycją. `prefers-reduced-motion` wyłącza płynne przejścia CSS, zatrzymuje animację tła i korzysta z układu płaskiego.
+
+Scena Three.js korzysta z trzech profili:
+
+- `full` zachowuje pełną jakość i modele planet na szerokich ekranach,
+- `compact` działa do `1000px`, przy `Save-Data` lub ograniczonej pamięci i liczbie rdzeni; używa 30 FPS, DPR 1,5, połowy cząstek i nie pobiera modeli planet,
+- `static` obsługuje `prefers-reduced-motion`, renderując pojedynczą klatkę bez planet.
 
 ## Formularz kontaktowy
 

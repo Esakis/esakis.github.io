@@ -9,7 +9,59 @@ import {
 } from '@angular/core';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { shouldSkipPlanetModels } from '../effects-policy';
+import { EffectsProfile, getEffectsProfile } from '../effects-policy';
+
+interface SceneQuality {
+  antialias: boolean;
+  powerPreference: 'high-performance' | 'low-power';
+  pixelRatio: number;
+  densityScale: number;
+  skySegments: readonly [number, number];
+  maxFps: number;
+  elapsedStep: number;
+  animate: boolean;
+  pointerParallax: boolean;
+  loadPlanets: boolean;
+}
+
+const SCENE_QUALITY: Record<EffectsProfile, SceneQuality> = {
+  full: {
+    antialias: true,
+    powerPreference: 'high-performance',
+    pixelRatio: 2,
+    densityScale: 1,
+    skySegments: [60, 40],
+    maxFps: 0,
+    elapsedStep: 0.0016,
+    animate: true,
+    pointerParallax: true,
+    loadPlanets: true,
+  },
+  compact: {
+    antialias: false,
+    powerPreference: 'low-power',
+    pixelRatio: 1.5,
+    densityScale: 0.5,
+    skySegments: [32, 20],
+    maxFps: 30,
+    elapsedStep: 0.0032,
+    animate: true,
+    pointerParallax: false,
+    loadPlanets: false,
+  },
+  static: {
+    antialias: false,
+    powerPreference: 'low-power',
+    pixelRatio: 1,
+    densityScale: 0.5,
+    skySegments: [32, 20],
+    maxFps: 0,
+    elapsedStep: 0,
+    animate: false,
+    pointerParallax: false,
+    loadPlanets: false,
+  },
+};
 
 /**
  * Pełnoekranowe tło WebGL: realna panorama Drogi Mlecznej jako skybox,
@@ -19,8 +71,8 @@ import { shouldSkipPlanetModels } from '../effects-policy';
  * Solar System Scope (CC BY 4.0).
  *
  * Niebo i słup obracają się o pełne 360° wraz z przewijaniem strony.
- * Renderer żyje poza wykrywaniem zmian Angulara (pętla rAF), pomija modele
- * planet przy ograniczonych efektach i zwalnia zasoby GPU przy zniszczeniu.
+ * Renderer żyje poza wykrywaniem zmian Angulara (pętla rAF), dobiera jakość
+ * sceny do urządzenia i zwalnia zasoby GPU przy zniszczeniu.
  */
 @Component({
   selector: 'app-space-background',
@@ -68,6 +120,8 @@ export class SpaceBackground {
   private isDocumentVisible = true;
   private destroyed = false;
   private resizeFrameId = 0;
+  private lastRenderTime = 0;
+  private quality = SCENE_QUALITY.full;
 
   constructor() {
     afterNextRender(() => {
@@ -77,14 +131,13 @@ export class SpaceBackground {
 
   private init(): void {
     const canvas = this.canvasRef().nativeElement;
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
-    const skipPlanets = shouldSkipPlanetModels();
+    this.quality = SCENE_QUALITY[getEffectsProfile()];
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: this.quality.antialias,
       alpha: true,
-      powerPreference: 'high-performance',
+      powerPreference: this.quality.powerPreference,
     });
     renderer.setClearColor(0x03040c, 1);
     this.renderer = renderer;
@@ -98,18 +151,17 @@ export class SpaceBackground {
 
     scene.add(this.buildSkybox());
     scene.add(this.buildPillar());
-    if (!skipPlanets) scene.add(this.buildPlanets());
     scene.add(this.buildForegroundStars());
-    this.addLights(scene);
+    if (this.quality.loadPlanets) {
+      scene.add(this.buildPlanets());
+      this.addLights(scene);
+    }
 
     this.resize();
-    this.bindEvents(reducedMotion);
+    this.bindEvents();
 
-    if (reducedMotion) {
-      this.renderFrame();
-    } else {
-      this.loop();
-    }
+    if (this.quality.animate) this.loop();
+    else this.renderFrame();
   }
 
   /**
@@ -204,7 +256,7 @@ export class SpaceBackground {
 
   /** Kula z realną panoramą Drogi Mlecznej, oglądana od wewnątrz. */
   private buildSkybox(): THREE.Mesh {
-    const geometry = new THREE.SphereGeometry(600, 60, 40);
+    const geometry = new THREE.SphereGeometry(600, ...this.quality.skySegments);
     const loader = new THREE.TextureLoader();
     const texture = loader.load('textures/milky_way.jpg', () => this.renderFrame());
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -343,12 +395,18 @@ export class SpaceBackground {
       { count: 7500, size: 7.0 },
     ];
     for (const cloud of clouds) {
-      group.add(this.createGalaxyCloud(cloud.count, cloud.size, sprite));
+      group.add(
+        this.createGalaxyCloud(
+          Math.round(cloud.count * this.quality.densityScale),
+          cloud.size,
+          sprite,
+        ),
+      );
     }
 
     // Ciemne pasma pyłu (mieszanie zwykłe, nie addytywne) — kontrastowe
     // przerwy w świetle, jak na fotografiach jądra galaktyki.
-    group.add(this.createDustCloud(6000, sprite));
+    group.add(this.createDustCloud(Math.round(6000 * this.quality.densityScale), sprite));
 
     // Łuna: trzy warstwy dużych, miękkich sprite'ów — ciepła złota przy osi,
     // fioletowa w środkowym pasie oraz czerwono-karmazynowa, najszersza.
@@ -367,11 +425,12 @@ export class SpaceBackground {
         blending: THREE.AdditiveBlending,
       });
       this.disposables.push(glowMaterial);
-      for (let i = 0; i < layer.count; i++) {
+      const count = Math.round(layer.count * this.quality.densityScale);
+      for (let i = 0; i < count; i++) {
         const glow = new THREE.Sprite(glowMaterial);
         glow.position.set(
           (Math.random() - 0.5) * layer.spread,
-          -1000 + (i / layer.count) * 2000 + (Math.random() - 0.5) * 120,
+          -1000 + (i / count) * 2000 + (Math.random() - 0.5) * 120,
           (Math.random() - 0.5) * layer.spread,
         );
         glow.scale.setScalar(layer.scale * (0.7 + Math.random() * 0.7));
@@ -582,7 +641,7 @@ export class SpaceBackground {
   /** Sferyczna powłoka gwiazd pierwszego planu (parallax) — celowo rzadka,
    *  by nie zagłuszać prawdziwych gwiazdozbiorów z katalogu. */
   private buildForegroundStars(): THREE.Points {
-    const count = 750;
+    const count = Math.round(750 * this.quality.densityScale);
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const palette = [
@@ -647,12 +706,12 @@ export class SpaceBackground {
     return texture;
   }
 
-  private bindEvents(reducedMotion: boolean): void {
+  private bindEvents(): void {
     const onResize = () => {
       cancelAnimationFrame(this.resizeFrameId);
       this.resizeFrameId = requestAnimationFrame(() => {
         this.resize();
-        if (reducedMotion || this.isDocumentVisible) this.renderFrame();
+        if (!this.quality.animate || this.isDocumentVisible) this.renderFrame();
       });
     };
     window.addEventListener('resize', onResize);
@@ -664,24 +723,30 @@ export class SpaceBackground {
         cancelAnimationFrame(this.frameId);
         return;
       }
-      if (reducedMotion) this.renderFrame();
-      else this.loop();
+      if (this.quality.animate) {
+        this.lastRenderTime = 0;
+        this.loop();
+      } else {
+        this.renderFrame();
+      }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     this.cleanupFns.push(() =>
       document.removeEventListener('visibilitychange', onVisibilityChange),
     );
 
-    if (reducedMotion) return;
+    if (!this.quality.animate) return;
 
-    const onPointerMove = (event: PointerEvent) => {
-      this.pointerTarget.set(
-        (event.clientX / window.innerWidth - 0.5) * 2,
-        (event.clientY / window.innerHeight - 0.5) * 2,
-      );
-    };
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
-    this.cleanupFns.push(() => window.removeEventListener('pointermove', onPointerMove));
+    if (this.quality.pointerParallax) {
+      const onPointerMove = (event: PointerEvent) => {
+        this.pointerTarget.set(
+          (event.clientX / window.innerWidth - 0.5) * 2,
+          (event.clientY / window.innerHeight - 0.5) * 2,
+        );
+      };
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      this.cleanupFns.push(() => window.removeEventListener('pointermove', onPointerMove));
+    }
 
     const onScroll = () => {
       const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
@@ -696,16 +761,25 @@ export class SpaceBackground {
     if (!this.renderer || !this.camera) return;
     const width = this.host.nativeElement.clientWidth || window.innerWidth;
     const height = this.host.nativeElement.clientHeight || window.innerHeight;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.quality.pixelRatio));
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
 
-  private loop = (): void => {
+  private loop = (timestamp = performance.now()): void => {
     if (this.destroyed || !this.isDocumentVisible) return;
     this.frameId = requestAnimationFrame(this.loop);
-    this.elapsed += 0.0016;
+
+    if (this.quality.maxFps > 0 && this.lastRenderTime > 0) {
+      const frameInterval = 1000 / this.quality.maxFps;
+      const sinceLastRender = timestamp - this.lastRenderTime;
+      if (sinceLastRender < frameInterval) return;
+      this.lastRenderTime = timestamp - (sinceLastRender % frameInterval);
+    } else {
+      this.lastRenderTime = timestamp;
+    }
+    this.elapsed += this.quality.elapsedStep;
 
     this.pointer.lerp(this.pointerTarget, 0.045);
     this.scroll += (this.scrollTarget - this.scroll) * 0.06;
