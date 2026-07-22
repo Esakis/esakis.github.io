@@ -1,6 +1,6 @@
-import { DOCUMENT } from '@angular/common';
-import { isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser, PlatformLocation } from '@angular/common';
 import { PLATFORM_ID, afterNextRender, Component, computed, inject, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { SpaceBackground } from './space-background/space-background';
 import { HelixScroll } from './helix-scroll';
 
@@ -8,6 +8,12 @@ type Language = 'pl' | 'en';
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 type FormField = 'name' | 'email' | 'message';
 type FieldError = 'required' | 'email';
+
+const SITE_URL = 'https://esakis.github.io';
+const LANGUAGE_PATHS: Record<Language, string> = {
+  pl: '/pl/',
+  en: '/en/',
+};
 
 interface PortfolioScreenshot {
   src: string;
@@ -512,15 +518,16 @@ const CONTENT = {
 
 @Component({
   selector: 'app-root',
-  imports: [SpaceBackground, HelixScroll],
+  imports: [SpaceBackground, HelixScroll, RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
   private readonly document = inject(DOCUMENT);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly location = inject(PlatformLocation);
 
-  protected readonly language = signal<Language>('pl');
+  protected readonly language = signal<Language>(this.languageFromPath());
   protected readonly menuOpen = signal(false);
   protected readonly copy = computed(() => CONTENT[this.language()]);
   protected readonly profile = PROFILE;
@@ -537,24 +544,34 @@ export class App {
   private static readonly CONTACT_REQUEST_TIMEOUT_MS = 15_000;
 
   constructor() {
+    this.applyLanguage(this.language());
     afterNextRender(() => {
       if (!isPlatformBrowser(this.platformId)) return;
+      if (this.isStaticLanguagePath()) return;
       const savedLanguage = this.readSavedLanguage();
       if (savedLanguage) this.setLanguage(savedLanguage);
     });
   }
 
   protected setLanguage(language: Language): void {
-    this.language.set(language);
-    this.document.documentElement.lang = language;
-    this.updateMetadata(language);
-    if (isPlatformBrowser(this.platformId)) {
+    this.applyLanguage(language);
+    if (isPlatformBrowser(this.platformId) && !this.isStaticLanguagePath()) {
       try {
         window.localStorage.setItem('portfolio-language', language);
       } catch {
         // Privacy settings can deny storage; the language still changes for this visit.
       }
     }
+  }
+
+  protected languageHref(language: Language): string {
+    return LANGUAGE_PATHS[language];
+  }
+
+  private applyLanguage(language: Language): void {
+    this.language.set(language);
+    this.document.documentElement.lang = language;
+    this.updateMetadata(language);
   }
 
   protected toggleMenu(): void {
@@ -652,6 +669,7 @@ export class App {
 
   private updateMetadata(language: Language): void {
     const metadata = CONTENT[language];
+    const canonicalUrl = `${SITE_URL}${this.canonicalPath(language)}`;
     this.document.title = metadata.metaTitle;
     this.setMetaContent('meta[name="description"]', metadata.metaDescription);
     this.setMetaContent('meta[property="og:title"]', metadata.ogTitle);
@@ -659,10 +677,36 @@ export class App {
     this.setMetaContent('meta[property="og:locale"]', metadata.ogLocale);
     this.setMetaContent('meta[name="twitter:title"]', metadata.ogTitle);
     this.setMetaContent('meta[name="twitter:description"]', metadata.ogDescription);
+    this.setMetaContent('meta[property="og:url"]', canonicalUrl);
+    this.setLinkHref('link[rel="canonical"]', canonicalUrl);
   }
 
   private setMetaContent(selector: string, content: string): void {
     this.document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content', content);
+  }
+
+  private setLinkHref(selector: string, href: string): void {
+    this.document.querySelector<HTMLLinkElement>(selector)?.setAttribute('href', href);
+  }
+
+  private languageFromPath(): Language {
+    return this.pathname().startsWith('/en') ? 'en' : 'pl';
+  }
+
+  private canonicalPath(language: Language): string {
+    const pathname = this.pathname();
+    if (pathname.startsWith('/pl')) return LANGUAGE_PATHS.pl;
+    if (pathname.startsWith('/en')) return LANGUAGE_PATHS.en;
+    return language === 'en' ? LANGUAGE_PATHS.en : '/';
+  }
+
+  private isStaticLanguagePath(): boolean {
+    return /^\/(pl|en)(?:\/|$)/.test(this.pathname());
+  }
+
+  private pathname(): string {
+    if (isPlatformBrowser(this.platformId)) return window.location.pathname;
+    return this.location.pathname;
   }
 
   private readSavedLanguage(): Language | undefined {

@@ -17,25 +17,23 @@
 
   <div class="header-actions">
     <div class="language-switcher" role="group" [attr.aria-label]="copy().languageSwitcherLabel">
-      <button
-        type="button"
+      <a
+        [href]="languageHref('pl')"
         aria-label="Polski"
         [class.is-active]="language() === 'pl'"
-        [attr.aria-pressed]="language() === 'pl'"
-        (click)="setLanguage('pl')"
+        [attr.aria-current]="language() === 'pl' ? 'page' : null"
       >
         PL
-      </button>
+      </a>
       <span aria-hidden="true">/</span>
-      <button
-        type="button"
+      <a
+        [href]="languageHref('en')"
         aria-label="English"
         [class.is-active]="language() === 'en'"
-        [attr.aria-pressed]="language() === 'en'"
-        (click)="setLanguage('en')"
+        [attr.aria-current]="language() === 'en' ? 'page' : null"
       >
         EN
-      </button>
+      </a>
     </div>
 
     <button
@@ -514,3 +512,5 @@
     <a href="#top">{{ copy().backToTop }} <span aria-hidden="true">↑</span></a>
   </div>
 </footer>
+
+<router-outlet aria-hidden="true" />

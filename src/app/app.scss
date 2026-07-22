@@ -124,12 +124,13 @@
   font-family: var(--font-mono);
   font-size: 0.8rem;
 
-  button {
+  a {
     padding: 0.15rem;
     border: 0;
     background: none;
     color: #929991;
     cursor: pointer;
+    text-decoration: none;
 
     &.is-active {
       color: var(--ink);
@@ -1978,8 +1979,7 @@
   .hero h1 span,
   .contact h2 span {
     text-shadow: none;
-    filter: drop-shadow(0 2px 3px rgba(3, 4, 12, 0.95))
-      drop-shadow(0 0 12px rgba(3, 4, 12, 0.8));
+    filter: drop-shadow(0 2px 3px rgba(3, 4, 12, 0.95)) drop-shadow(0 0 12px rgba(3, 4, 12, 0.8));
   }
 
   /* Przyciski z jasnym gradientowym tłem i ciemnym tekstem — bez poświaty. */
@@ -2351,5 +2351,4 @@
   .floating-tag {
     display: none;
   }
-
 }

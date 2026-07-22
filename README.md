@@ -47,7 +47,7 @@ public/                       obrazy, modele 3D, robots.txt i sitemap.xml
 
 ## Języki
 
-Portfolio jest dostępne po polsku i angielsku. Przełącznik aktualizuje treść, język dokumentu oraz metadane SEO; wybrany język jest zachowywany w przeglądarce na kolejne odświeżenia.
+Portfolio ma prerenderowane wersje: [polską](https://esakis.github.io/pl/) i [angielską](https://esakis.github.io/en/). Przełącznik prowadzi do właściwej statycznej wersji, która zawiera odpowiedni język dokumentu i metadane SEO.
 
 ## Formularz kontaktowy
 
