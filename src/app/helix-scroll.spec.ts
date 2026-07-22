@@ -48,7 +48,8 @@ describe('HelixScroll', () => {
       return 1;
     };
     window.cancelAnimationFrame = vi.fn();
-    history.replaceState(null, '', '/pl/');
+    // GitHub Pages serves this route without a trailing slash, while links use /pl/#….
+    history.replaceState(null, '', '/pl');
 
     await TestBed.configureTestingModule({
       imports: [HelixHost],
@@ -58,6 +59,7 @@ describe('HelixScroll', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     history.replaceState(null, '', '/');
     window.scrollTo = originalScrollTo;
     window.requestAnimationFrame = originalRequestAnimationFrame;
@@ -91,9 +93,12 @@ describe('HelixScroll', () => {
     availability.setAvailable(true);
     const { fixture, root } = await createHost();
     const link = root.querySelector<HTMLAnchorElement>('a[href="/pl/#projects"]')!;
+    const pushState = vi.spyOn(history, 'pushState');
 
     const event = new MouseEvent('click', { bubbles: true, cancelable: true });
     expect(link.dispatchEvent(event)).toBe(false);
+    expect(pushState).toHaveBeenCalledWith(null, '', '/pl#projects');
+    expect(window.location.pathname).toBe('/pl');
     expect(window.location.hash).toBe('#projects');
 
     fixture.destroy();
@@ -107,18 +112,41 @@ describe('HelixScroll', () => {
       '#privacy-policy',
     )!;
     const scrollIntoView = vi.fn();
+    const pushState = vi.spyOn(history, 'pushState');
     footer.scrollIntoView = scrollIntoView;
 
     const event = new MouseEvent('click', { bubbles: true, cancelable: true });
     expect(link.dispatchEvent(event)).toBe(false);
+    expect(pushState).toHaveBeenCalledWith(null, '', '/pl#privacy-policy');
+    expect(window.location.pathname).toBe('/pl');
     expect(window.location.hash).toBe('#privacy-policy');
     expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
 
     fixture.destroy();
   });
 
+  it('restores a footer fragment after enabling the helix', async () => {
+    history.replaceState(null, '', '/pl#privacy-policy');
+    availability.setAvailable(true);
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView');
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    try {
+      const { fixture } = await createHost();
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
+      fixture.destroy();
+    } finally {
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', descriptor);
+      else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+    }
+  });
+
   it('opens the section from the initial hash after enabling WebGL', async () => {
-    history.replaceState(null, '', '/pl/#projects');
+    history.replaceState(null, '', '/pl#projects');
     availability.setAvailable(true);
     const { fixture } = await createHost();
 

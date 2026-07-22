@@ -435,7 +435,7 @@ export class HelixScroll {
           history.back();
           return;
         }
-        history.pushState(null, '', anchor.hash);
+        this.pushHash(anchor.hash);
         this.animateToIndex(index);
         return;
       }
@@ -443,7 +443,7 @@ export class HelixScroll {
       const fragmentTarget = this.fragmentTargetFromAnchor(anchor);
       if (fragmentTarget) {
         event.preventDefault();
-        history.pushState(null, '', anchor.hash);
+        this.pushHash(anchor.hash);
         // Przewinięcie musi ominąć snap helisy, inaczej zatrzyma się na ostatniej karcie.
         fragmentTarget.scrollIntoView({ block: 'start', behavior: 'instant' });
         return;
@@ -519,13 +519,7 @@ export class HelixScroll {
 
   private panelIndexFromAnchor(anchor: HTMLAnchorElement): number {
     const url = new URL(anchor.href, window.location.href);
-    if (
-      url.origin !== window.location.origin ||
-      url.pathname !== window.location.pathname ||
-      url.search !== window.location.search
-    ) {
-      return -1;
-    }
+    if (!this.isSameDocument(url)) return -1;
     return this.panelIndexFromHash(url.hash);
   }
 
@@ -541,28 +535,46 @@ export class HelixScroll {
 
   private fragmentTargetFromAnchor(anchor: HTMLAnchorElement): HTMLElement | undefined {
     const url = new URL(anchor.href, window.location.href);
-    if (
-      url.origin !== window.location.origin ||
-      url.pathname !== window.location.pathname ||
-      url.search !== window.location.search ||
-      !url.hash
-    ) {
-      return undefined;
-    }
+    if (!this.isSameDocument(url)) return undefined;
+    return this.fragmentTargetFromHash(url.hash);
+  }
+
+  private fragmentTargetFromHash(hash: string): HTMLElement | undefined {
+    if (!hash || hash === '#') return undefined;
     try {
-      return document.getElementById(decodeURIComponent(url.hash.slice(1))) ?? undefined;
+      return document.getElementById(decodeURIComponent(hash.slice(1))) ?? undefined;
     } catch {
       return undefined;
     }
+  }
+
+  private isSameDocument(url: URL): boolean {
+    const normalizePathname = (pathname: string) =>
+      pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+    return (
+      url.origin === window.location.origin &&
+      normalizePathname(url.pathname) === normalizePathname(window.location.pathname) &&
+      url.search === window.location.search
+    );
+  }
+
+  private pushHash(hash: string): void {
+    history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
   }
 
   /** W trybie pionowym przeglądarka obsługuje kotwice natywnie. */
   private navigateToHash(animate: boolean): void {
     if (this.flat) return;
     const index = this.panelIndexFromHash(window.location.hash);
-    if (index < 0) return;
-    if (animate) this.animateToIndex(index);
-    else this.scrollToIndex(index);
+    if (index >= 0) {
+      if (animate) this.animateToIndex(index);
+      else this.scrollToIndex(index);
+      return;
+    }
+    this.fragmentTargetFromHash(window.location.hash)?.scrollIntoView({
+      block: 'start',
+      behavior: 'instant',
+    });
   }
 
   private updateLinkHover(event: MouseEvent): void {
