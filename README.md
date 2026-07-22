@@ -1,15 +1,26 @@
 # Łukasz Sroka Tech — portfolio
 
-[![Łukasz Sroka Tech — Angular i .NET](https://esakis.github.io/og-image.png)](https://esakis.github.io/)
+[![Łukasz Sroka Tech — Angular i .NET](https://esakis.github.io/og-image.png)](https://esakis.github.io/pl/)
 
-Portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe dla firm, rozwój systemów oraz integracje. Strona działa pod adresem [https://esakis.github.io/](https://esakis.github.io/).
+Dwujęzyczne portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe dla firm, rozwój systemów oraz integracje. Wersja polska działa pod adresem [https://esakis.github.io/pl/](https://esakis.github.io/pl/), a angielska pod [https://esakis.github.io/en/](https://esakis.github.io/en/).
 
-## Technologie
+## Najważniejsze funkcje
 
-- Angular 21, TypeScript i Angular SSR / prerendering statyczny
-- Three.js (kosmiczne tło i efekty 3D)
-- .NET / C#, ASP.NET Core Web API, Entity Framework Core
-- PostgreSQL, SQL Server, Docker, Azure, RabbitMQ i Git
+- statycznie prerenderowane wersje polska i angielska z osobnymi metadanymi SEO,
+- helisa 3D na szerokich ekranach i czytelny układ pionowy na urządzeniach mobilnych,
+- kosmiczne tło Three.js reagujące na przewijanie i położenie wskaźnika,
+- automatyczne pomijanie modeli planet przy `prefers-reduced-motion`, `Save-Data` lub ograniczonych zasobach urządzenia,
+- aktywny znacznik aktualnego etapu usług podczas przewijania strony na telefonie,
+- formularz kontaktowy z walidacją i obsługą stanów wysyłania.
+
+## Technologie projektu
+
+- Angular 21, TypeScript i Angular SSR / prerendering statyczny,
+- Three.js i modele GLTF,
+- SCSS,
+- Vitest oraz Angular TestBed.
+
+Portfolio prezentuje również doświadczenie z .NET / C#, ASP.NET Core Web API, Entity Framework Core, PostgreSQL, SQL Server, Dockerem, Azure i RabbitMQ.
 
 ## Instalacja i uruchomienie lokalne
 
@@ -20,7 +31,7 @@ npm ci
 npm start
 ```
 
-Po uruchomieniu aplikacja jest dostępna pod adresem `http://localhost:4200/`.
+Po uruchomieniu wersje językowe są dostępne pod adresami `http://localhost:4200/pl/` i `http://localhost:4200/en/`.
 
 ## Testy i build produkcyjny
 
@@ -29,7 +40,7 @@ npm test
 npm run build
 ```
 
-Build wykonuje statyczny prerender Angulara. Wynik jest zapisywany w `dist/portfolio/browser` i może być hostowany bez serwera Node.js.
+Build wykonuje statyczny prerender tras `/pl/` i `/en/`. Wynik jest zapisywany w `dist/portfolio/browser` i może być hostowany bez serwera Node.js.
 
 ## Wdrożenie
 
@@ -38,16 +49,21 @@ Workflow GitHub Actions w `.github/workflows/deploy.yml` uruchamia `npm ci`, tes
 ## Struktura projektu
 
 ```text
-src/app/                     komponent aplikacji, dane treści i formularz
-src/app/space-background/    scena Three.js i modele planet
+src/app/app.*                 komponent aplikacji, treści, responsywność i formularz
 src/app/helix-scroll.ts       przejścia pomiędzy sekcjami na helisie 3D
+src/app/effects-policy.ts     decyzja o pominięciu cięższych modeli planet
+src/app/space-background/     scena Three.js i modele planet
 public/                       obrazy, modele 3D, robots.txt i sitemap.xml
-.github/workflows/            automatyczne wdrożenie GitHub Pages
+.github/workflows/            testy, build i wdrożenie GitHub Pages
 ```
 
 ## Języki
 
-Portfolio ma prerenderowane wersje: [polską](https://esakis.github.io/pl/) i [angielską](https://esakis.github.io/en/). Przełącznik prowadzi do właściwej statycznej wersji, która zawiera odpowiedni język dokumentu i metadane SEO.
+Portfolio ma prerenderowane wersje: [polską](https://esakis.github.io/pl/) i [angielską](https://esakis.github.io/en/). Przełącznik prowadzi do właściwej statycznej wersji, która zawiera odpowiedni język dokumentu, canonical, `hreflang` i metadane społecznościowe.
+
+## Responsywność i dostępność
+
+Na telefonach helisa przechodzi w pionowy układ, numeracja elementów zachowuje jeden styl, a aktywna kropka osi usług podąża za aktualnie oglądaną pozycją. `prefers-reduced-motion` wyłącza płynne przejścia CSS, zatrzymuje animację tła i korzysta z układu płaskiego.
 
 ## Formularz kontaktowy
 

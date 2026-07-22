@@ -65,7 +65,7 @@
   >
     @for (item of copy().nav; track item.id; let index = $index) {
       <a [href]="fragmentHref(item.id)" (click)="closeMenu()">
-        <span>0{{ index + 1 }}</span
+        <span class="ordinal-number">0{{ index + 1 }}</span
         >{{ item.label }}
       </a>
     }
@@ -182,7 +182,7 @@
           <div class="principles">
             @for (principle of copy().principles; track principle.number) {
               <article class="principle">
-                <span>{{ principle.number }}</span>
+                <span class="ordinal-number">{{ principle.number }}</span>
                 <div>
                   <h3>{{ principle.title }}</h3>
                   <p>{{ principle.text }}</p>
@@ -245,7 +245,7 @@
                       <i></i>
                     </div>
                   }
-                  <span class="project-card__number">{{ project.number }}</span>
+                  <span class="project-card__number ordinal-number">{{ project.number }}</span>
                 </div>
 
                 <div class="project-card__content">
@@ -331,9 +331,9 @@
         </div>
 
         <div class="timeline">
-          @for (service of copy().services; track service.period; let first = $first) {
-            <article class="timeline-item" [class.is-current]="first">
-              <p class="timeline-item__period">{{ service.period }}</p>
+          @for (service of copy().services; track service.period; let index = $index) {
+            <article class="timeline-item" [class.is-current]="activeServiceIndex() === index">
+              <p class="timeline-item__period ordinal-number">{{ service.period }}</p>
               <div class="timeline-item__marker"><span></span></div>
               <div class="timeline-item__content">
                 <p>{{ service.company }}</p>
@@ -355,7 +355,7 @@
           <div class="process__grid">
             @for (step of copy().process; track step.number) {
               <article>
-                <span>{{ step.number }}</span>
+                <span class="ordinal-number">{{ step.number }}</span>
                 <h3>{{ step.title }}</h3>
                 <p>{{ step.text }}</p>
               </article>

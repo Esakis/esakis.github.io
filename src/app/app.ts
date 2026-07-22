@@ -1,5 +1,13 @@
 import { DOCUMENT, isPlatformBrowser, PlatformLocation } from '@angular/common';
-import { PLATFORM_ID, afterNextRender, Component, computed, inject, signal } from '@angular/core';
+import {
+  PLATFORM_ID,
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SpaceBackground } from './space-background/space-background';
 import { HelixScroll } from './helix-scroll';
@@ -524,11 +532,13 @@ const CONTENT = {
 })
 export class App {
   private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly location = inject(PlatformLocation);
 
   protected readonly language = signal<Language>(this.languageFromPath());
   protected readonly menuOpen = signal(false);
+  protected readonly activeServiceIndex = signal(0);
   protected readonly copy = computed(() => CONTENT[this.language()]);
   protected readonly profile = PROFILE;
   protected readonly currentYear = new Date().getFullYear();
@@ -547,9 +557,56 @@ export class App {
     this.applyLanguage(this.language());
     afterNextRender(() => {
       if (!isPlatformBrowser(this.platformId)) return;
+      this.trackMobileServiceTimeline();
       if (this.isStaticLanguagePath()) return;
       const savedLanguage = this.readSavedLanguage();
       if (savedLanguage) this.setLanguage(savedLanguage);
+    });
+  }
+
+  private trackMobileServiceTimeline(): void {
+    const items = Array.from(this.document.querySelectorAll<HTMLElement>('.timeline-item'));
+    if (items.length === 0) return;
+
+    const mobile = window.matchMedia?.('(max-width: 760px)');
+    let observer: IntersectionObserver | undefined;
+
+    const configure = () => {
+      observer?.disconnect();
+      observer = undefined;
+      this.activeServiceIndex.set(0);
+
+      const isMobile = mobile?.matches ?? window.innerWidth <= 760;
+      if (!isMobile || typeof IntersectionObserver === 'undefined') return;
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.filter((entry) => entry.isIntersecting);
+          if (visible.length === 0) return;
+
+          const focusY = window.innerHeight * 0.45;
+          const closest = visible.reduce((current, candidate) => {
+            const currentCenter =
+              current.boundingClientRect.top + current.boundingClientRect.height / 2;
+            const candidateCenter =
+              candidate.boundingClientRect.top + candidate.boundingClientRect.height / 2;
+            return Math.abs(candidateCenter - focusY) < Math.abs(currentCenter - focusY)
+              ? candidate
+              : current;
+          });
+          const index = items.indexOf(closest.target as HTMLElement);
+          if (index >= 0) this.activeServiceIndex.set(index);
+        },
+        { rootMargin: '-42% 0px -42% 0px' },
+      );
+      items.forEach((item) => observer?.observe(item));
+    };
+
+    configure();
+    mobile?.addEventListener('change', configure);
+    this.destroyRef.onDestroy(() => {
+      observer?.disconnect();
+      mobile?.removeEventListener('change', configure);
     });
   }
 

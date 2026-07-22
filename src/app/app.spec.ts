@@ -109,6 +109,105 @@ describe('App', () => {
     );
   });
 
+  it('uses one class for mobile ordinal numbers', () => {
+    const { fixture } = createApp();
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelectorAll('.mobile-nav .ordinal-number')).toHaveLength(4);
+    expect(root.querySelectorAll('.principle > .ordinal-number')).toHaveLength(3);
+    expect(root.querySelectorAll('.project-card__number.ordinal-number')).toHaveLength(2);
+    expect(root.querySelectorAll('.timeline-item__period.ordinal-number')).toHaveLength(3);
+    expect(root.querySelectorAll('.process__grid .ordinal-number')).toHaveLength(3);
+  });
+
+  it('moves the active service marker as timeline items enter the mobile focus area', async () => {
+    const matchMediaDescriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+    const observerDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'IntersectionObserver');
+    const mobileQuery = {
+      matches: true,
+      media: '(max-width: 760px)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList;
+    const reducedMotionQuery = {
+      matches: false,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList;
+    let intersectionCallback!: IntersectionObserverCallback;
+    let observer!: MockIntersectionObserver;
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = '-42% 0px -42% 0px';
+      readonly thresholds = [0];
+      readonly observe = vi.fn();
+      readonly unobserve = vi.fn();
+      readonly disconnect = vi.fn();
+      readonly takeRecords = vi.fn(() => []);
+
+      constructor(callback: IntersectionObserverCallback) {
+        intersectionCallback = callback;
+        observer = this;
+      }
+    }
+
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn((query: string) =>
+        query === '(max-width: 760px)' ? mobileQuery : reducedMotionQuery,
+      ),
+    });
+    Object.defineProperty(globalThis, 'IntersectionObserver', {
+      configurable: true,
+      value: MockIntersectionObserver,
+    });
+
+    const { fixture } = createApp();
+    try {
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      const items = root.querySelectorAll<HTMLElement>('.timeline-item');
+      expect(items[0].classList.contains('is-current')).toBe(true);
+
+      const activate = (index: number) => {
+        intersectionCallback(
+          [
+            {
+              isIntersecting: true,
+              target: items[index],
+              boundingClientRect: { top: 300, height: 120 },
+            } as unknown as IntersectionObserverEntry,
+          ],
+          observer,
+        );
+        fixture.detectChanges();
+
+        expect(Array.from(items).filter((item) => item.classList.contains('is-current'))).toEqual([
+          items[index],
+        ]);
+      };
+
+      activate(1);
+      activate(2);
+      activate(1);
+      activate(0);
+    } finally {
+      fixture.destroy();
+      if (matchMediaDescriptor) {
+        Object.defineProperty(window, 'matchMedia', matchMediaDescriptor);
+      } else {
+        Reflect.deleteProperty(window, 'matchMedia');
+      }
+      if (observerDescriptor) {
+        Object.defineProperty(globalThis, 'IntersectionObserver', observerDescriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, 'IntersectionObserver');
+      }
+    }
+  });
+
   it('does not send an empty form and focuses validation', async () => {
     const { app } = createApp();
     const fetchMock = vi.fn();
