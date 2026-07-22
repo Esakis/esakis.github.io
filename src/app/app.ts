@@ -568,6 +568,10 @@ export class App {
     return LANGUAGE_PATHS[language];
   }
 
+  protected fragmentHref(fragment: string): string {
+    return `${LANGUAGE_PATHS[this.language()]}#${fragment}`;
+  }
+
   private applyLanguage(language: Language): void {
     this.language.set(language);
     this.document.documentElement.lang = language;
@@ -697,7 +701,7 @@ export class App {
     const pathname = this.pathname();
     if (pathname.startsWith('/pl')) return LANGUAGE_PATHS.pl;
     if (pathname.startsWith('/en')) return LANGUAGE_PATHS.en;
-    return language === 'en' ? LANGUAGE_PATHS.en : '/';
+    return LANGUAGE_PATHS[language];
   }
 
   private isStaticLanguagePath(): boolean {

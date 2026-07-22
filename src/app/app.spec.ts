@@ -87,6 +87,28 @@ describe('App', () => {
     expect(locale.getAttribute('content')).toBe('en_US');
   });
 
+  it('uses the active language path for in-page navigation', () => {
+    const { fixture, app } = createApp();
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector<HTMLAnchorElement>('.skip-link')?.getAttribute('href')).toBe(
+      '/pl/#main-content',
+    );
+    expect(root.querySelector<HTMLAnchorElement>('.desktop-nav a')?.getAttribute('href')).toBe(
+      '/pl/#about',
+    );
+
+    app.setLanguage('en');
+    fixture.detectChanges();
+
+    expect(root.querySelector<HTMLAnchorElement>('.skip-link')?.getAttribute('href')).toBe(
+      '/en/#main-content',
+    );
+    expect(root.querySelector<HTMLAnchorElement>('.desktop-nav a')?.getAttribute('href')).toBe(
+      '/en/#about',
+    );
+  });
+
   it('does not send an empty form and focuses validation', async () => {
     const { app } = createApp();
     const fetchMock = vi.fn();

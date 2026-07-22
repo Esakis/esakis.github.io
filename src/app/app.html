@@ -2,16 +2,21 @@
   <app-space-background />
 }
 
-<a class="skip-link" href="#main-content">{{ copy().skipLink }}</a>
+<a class="skip-link" [href]="fragmentHref('main-content')">{{ copy().skipLink }}</a>
 
 <header class="site-header">
-  <a class="brand" href="#top" [attr.aria-label]="copy().homeLabel" (click)="closeMenu()">
+  <a
+    class="brand"
+    [href]="fragmentHref('top')"
+    [attr.aria-label]="copy().homeLabel"
+    (click)="closeMenu()"
+  >
     <img class="brand__logo" src="logo.svg" alt="" width="44" height="44" />
   </a>
 
   <nav class="desktop-nav" [attr.aria-label]="copy().mainNavigationLabel">
     @for (item of copy().nav; track item.id) {
-      <a [href]="'#' + item.id"><span>/</span>{{ item.label }}</a>
+      <a [href]="fragmentHref(item.id)"><span>/</span>{{ item.label }}</a>
     }
   </nav>
 
@@ -59,7 +64,7 @@
     [attr.aria-label]="copy().mobileNavigationLabel"
   >
     @for (item of copy().nav; track item.id; let index = $index) {
-      <a [href]="'#' + item.id" (click)="closeMenu()">
+      <a [href]="fragmentHref(item.id)" (click)="closeMenu()">
         <span>0{{ index + 1 }}</span
         >{{ item.label }}
       </a>
@@ -84,13 +89,13 @@
           </h1>
           <p class="hero__description">{{ copy().heroDescription }}</p>
           <div class="hero__actions">
-            <a class="button button--primary" href="#projects">
+            <a class="button button--primary" [href]="fragmentHref('projects')">
               {{ copy().heroPrimary }}
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </a>
-            <a class="button button--ghost" href="#contact">{{ copy().heroSecondary }}</a>
+            <a class="button button--ghost" [href]="fragmentHref('contact')">{{ copy().heroSecondary }}</a>
           </div>
           <p class="hero__note">
             <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -142,7 +147,7 @@
           <div class="floating-tag floating-tag--ts">TS</div>
         </div>
 
-        <a class="scroll-cue" href="#about" [attr.aria-label]="copy().scrollLabel">
+        <a class="scroll-cue" [href]="fragmentHref('about')" [attr.aria-label]="copy().scrollLabel">
           <span>SCROLL</span>
           <i></i>
         </a>
@@ -495,7 +500,7 @@
 
 <footer class="footer">
   <div class="section-shell footer__inner">
-    <a class="brand" href="#top" [attr.aria-label]="copy().homeLabel">
+    <a class="brand" [href]="fragmentHref('top')" [attr.aria-label]="copy().homeLabel">
       <img class="brand__logo" src="logo.svg" alt="" width="40" height="40" />
     </a>
     <p>
@@ -509,7 +514,7 @@
         >) · Modele planet: NASA</span
       >
     </p>
-    <a href="#top">{{ copy().backToTop }} <span aria-hidden="true">↑</span></a>
+    <a [href]="fragmentHref('top')">{{ copy().backToTop }} <span aria-hidden="true">↑</span></a>
   </div>
 </footer>
 
