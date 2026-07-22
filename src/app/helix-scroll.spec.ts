@@ -9,6 +9,7 @@ import { WebglAvailability } from './webgl-availability';
   template: `
     <main class="helix" appHelix>
       <a href="/pl/#projects">Projects</a>
+      <a href="/pl/#privacy-policy">Privacy</a>
       <div class="helix-viewport">
         <div class="helix-stage">
           <section id="top" class="helix-panel">Top</section>
@@ -18,6 +19,7 @@ import { WebglAvailability } from './webgl-availability';
         </div>
       </div>
     </main>
+    <footer id="privacy-policy">Privacy policy</footer>
   `,
 })
 class HelixHost {}
@@ -93,6 +95,24 @@ describe('HelixScroll', () => {
     const event = new MouseEvent('click', { bubbles: true, cancelable: true });
     expect(link.dispatchEvent(event)).toBe(false);
     expect(window.location.hash).toBe('#projects');
+
+    fixture.destroy();
+  });
+
+  it('jumps past the helix to a same-page footer fragment', async () => {
+    availability.setAvailable(true);
+    const { fixture, root } = await createHost();
+    const link = root.querySelector<HTMLAnchorElement>('a[href="/pl/#privacy-policy"]')!;
+    const footer = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+      '#privacy-policy',
+    )!;
+    const scrollIntoView = vi.fn();
+    footer.scrollIntoView = scrollIntoView;
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    expect(link.dispatchEvent(event)).toBe(false);
+    expect(window.location.hash).toBe('#privacy-policy');
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
 
     fixture.destroy();
   });

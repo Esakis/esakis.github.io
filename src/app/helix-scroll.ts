@@ -420,7 +420,6 @@ export class HelixScroll {
     const index = anchor ? this.panelIndexFromAnchor(anchor) : -1;
     if (
       anchor &&
-      index >= 0 &&
       event.button === 0 &&
       !event.metaKey &&
       !event.ctrlKey &&
@@ -429,15 +428,26 @@ export class HelixScroll {
       !anchor.target &&
       !anchor.hasAttribute('download')
     ) {
-      event.preventDefault();
-      if (this.expandedIndex !== null) {
-        // Najpierw zamknij powiększenie; nawigacja przy kolejnym kliknięciu.
-        history.back();
+      if (index >= 0) {
+        event.preventDefault();
+        if (this.expandedIndex !== null) {
+          // Najpierw zamknij powiększenie; nawigacja przy kolejnym kliknięciu.
+          history.back();
+          return;
+        }
+        history.pushState(null, '', anchor.hash);
+        this.animateToIndex(index);
         return;
       }
-      history.pushState(null, '', anchor.hash);
-      this.animateToIndex(index);
-      return;
+
+      const fragmentTarget = this.fragmentTargetFromAnchor(anchor);
+      if (fragmentTarget) {
+        event.preventDefault();
+        history.pushState(null, '', anchor.hash);
+        // Przewinięcie musi ominąć snap helisy, inaczej zatrzyma się na ostatniej karcie.
+        fragmentTarget.scrollIntoView({ block: 'start', behavior: 'instant' });
+        return;
+      }
     }
 
     // Pola formularza i etykiety obsługujemy natywnie — kliknięcie w nie
@@ -526,6 +536,23 @@ export class HelixScroll {
       return this.panels.findIndex((panel) => panel.id === id);
     } catch {
       return -1;
+    }
+  }
+
+  private fragmentTargetFromAnchor(anchor: HTMLAnchorElement): HTMLElement | undefined {
+    const url = new URL(anchor.href, window.location.href);
+    if (
+      url.origin !== window.location.origin ||
+      url.pathname !== window.location.pathname ||
+      url.search !== window.location.search ||
+      !url.hash
+    ) {
+      return undefined;
+    }
+    try {
+      return document.getElementById(decodeURIComponent(url.hash.slice(1))) ?? undefined;
+    } catch {
+      return undefined;
     }
   }
 
