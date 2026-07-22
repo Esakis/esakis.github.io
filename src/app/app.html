@@ -214,7 +214,7 @@
           </div>
 
           <div class="project-list">
-            @for (project of copy().projects; track project.title) {
+            @for (project of copy().projects; track project.id) {
               <article class="project-card">
                 <div
                   class="project-card__visual"
@@ -224,7 +224,13 @@
                   @if (project.screenshots.length) {
                     <div class="project-card__screenshots">
                       @for (screenshot of project.screenshots; track screenshot.src) {
-                        <img [src]="screenshot.src" [alt]="screenshot.alt" loading="lazy" />
+                        <img
+                          [src]="screenshot.src"
+                          [alt]="screenshot.alt"
+                          [width]="screenshot.width"
+                          [height]="screenshot.height"
+                          loading="lazy"
+                        />
                       }
                     </div>
                   } @else {
@@ -242,10 +248,10 @@
                 <div class="project-card__content">
                   <p class="project-card__category">{{ project.category }}</p>
                   <h3>
-                    @if (project.url) {
+                    @if (project.liveUrl) {
                       <a
                         class="project-card__title-link"
-                        [href]="project.url"
+                        [href]="project.liveUrl"
                         target="_blank"
                         rel="noopener noreferrer"
                         >{{ project.title }}</a
@@ -266,6 +272,10 @@
                       <dd>{{ project.problem }}</dd>
                     </div>
                     <div>
+                      <dt>{{ copy().projectSolutionLabel }}</dt>
+                      <dd>{{ project.solution }}</dd>
+                    </div>
+                    <div>
                       <dt>{{ copy().projectFeaturesLabel }}</dt>
                       <dd>
                         <ul>
@@ -276,12 +286,12 @@
                       </dd>
                     </div>
                     <div>
-                      <dt>{{ copy().projectArchitectureLabel }}</dt>
-                      <dd>{{ project.architecture }}</dd>
+                      <dt>{{ copy().projectResultLabel }}</dt>
+                      <dd>{{ project.result }}</dd>
                     </div>
                     <div>
-                      <dt>{{ copy().projectStageLabel }}</dt>
-                      <dd>{{ project.stage }}</dd>
+                      <dt>{{ copy().projectStatusLabel }}</dt>
+                      <dd>{{ project.status }}</dd>
                     </div>
                   </dl>
 
@@ -290,9 +300,9 @@
                       <span>{{ tag }}</span>
                     }
                   </div>
-                  @if (project.url) {
+                  @if (project.liveUrl) {
                     <div class="project-card__links">
-                      <a [href]="project.url" target="_blank" rel="noopener noreferrer">
+                      <a [href]="project.liveUrl" target="_blank" rel="noopener noreferrer">
                         {{ copy().projectLive }}
                         <svg aria-hidden="true" viewBox="0 0 24 24">
                           <path d="M7 17 17 7M8 7h9v9" />
@@ -393,12 +403,15 @@
                 autocomplete="name"
                 [class.is-invalid]="!!formErrors().name"
                 [attr.aria-invalid]="!!formErrors().name || null"
+                [attr.aria-describedby]="formErrors().name ? 'contact-name-error' : null"
                 [placeholder]="copy().form.namePlaceholder"
                 [value]="contactName()"
                 (input)="onFieldInput('name', $event)"
               />
               @if (formErrors().name) {
-                <p class="contact__error">{{ copy().form.errorRequired }}</p>
+                <p id="contact-name-error" class="contact__error">
+                  {{ copy().form.errorRequired }}
+                </p>
               }
             </div>
 
@@ -411,13 +424,18 @@
                 autocomplete="email"
                 [class.is-invalid]="!!formErrors().email"
                 [attr.aria-invalid]="!!formErrors().email || null"
+                [attr.aria-describedby]="formErrors().email ? 'contact-email-error' : null"
                 [placeholder]="copy().form.emailPlaceholder"
                 [value]="contactEmail()"
                 (input)="onFieldInput('email', $event)"
               />
               @if (formErrors().email) {
-                <p class="contact__error">
-                  {{ formErrors().email === 'email' ? copy().form.errorEmail : copy().form.errorRequired }}
+                <p id="contact-email-error" class="contact__error">
+                  {{
+                    formErrors().email === 'email'
+                      ? copy().form.errorEmail
+                      : copy().form.errorRequired
+                  }}
                 </p>
               }
             </div>
@@ -430,17 +448,27 @@
                 rows="5"
                 [class.is-invalid]="!!formErrors().message"
                 [attr.aria-invalid]="!!formErrors().message || null"
+                [attr.aria-describedby]="formErrors().message ? 'contact-message-error' : null"
                 [placeholder]="copy().form.messagePlaceholder"
                 [value]="contactMessage()"
                 (input)="onFieldInput('message', $event)"
               ></textarea>
               @if (formErrors().message) {
-                <p class="contact__error">{{ copy().form.errorRequired }}</p>
+                <p id="contact-message-error" class="contact__error">
+                  {{ copy().form.errorRequired }}
+                </p>
               }
             </div>
 
-            <button type="submit" class="contact__button" [disabled]="formState() === 'sending'">
-              <span>{{ formState() === 'sending' ? copy().form.sending : copy().form.submit }}</span>
+            <button
+              type="submit"
+              class="contact__button"
+              [disabled]="formState() === 'sending'"
+              [attr.aria-busy]="formState() === 'sending'"
+            >
+              <span>{{
+                formState() === 'sending' ? copy().form.sending : copy().form.submit
+              }}</span>
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </button>
 

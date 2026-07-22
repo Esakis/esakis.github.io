@@ -1,8 +1,10 @@
+import { isPlatformBrowser } from '@angular/common';
 import {
   afterNextRender,
   Component,
   ElementRef,
   inject,
+  PLATFORM_ID,
   viewChild,
 } from '@angular/core';
 import * as THREE from 'three';
@@ -39,9 +41,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   `,
 })
 export class SpaceBackground {
-  private readonly canvasRef =
-    viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly platformId = inject(PLATFORM_ID);
 
   private renderer?: THREE.WebGLRenderer;
   private scene?: THREE.Scene;
@@ -62,15 +64,19 @@ export class SpaceBackground {
   private scrollTarget = 0;
   private scroll = 0;
   private elapsed = 0;
+  private isDocumentVisible = true;
+  private destroyed = false;
+  private resizeFrameId = 0;
 
   constructor() {
-    afterNextRender(() => this.init());
+    afterNextRender(() => {
+      if (isPlatformBrowser(this.platformId)) this.init();
+    });
   }
 
   private init(): void {
     const canvas = this.canvasRef().nativeElement;
-    const reducedMotion =
-      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -109,36 +115,88 @@ export class SpaceBackground {
    * Kompletne charakterystyczne asteryzmy: Orion (z pasem), Wielki Wóz,
    * Kasjopeja (W), Krzyż Południa, Łabędź, część Skorpiona i Bliźniąt.
    */
-  private static readonly BRIGHT_STARS: ReadonlyArray<
-    [number, number, number]
-  > = [
-    [101.29, -16.72, -1.46], [95.99, -52.7, -0.74], [219.9, -60.83, -0.27],
-    [213.92, 19.18, -0.05], [279.23, 38.78, 0.03], [79.17, 46.0, 0.08],
-    [78.63, -8.2, 0.13], [114.83, 5.22, 0.34], [24.43, -57.24, 0.46],
-    [88.79, 7.41, 0.5], [210.96, -60.37, 0.61], [297.7, 8.87, 0.77],
-    [186.65, -63.1, 0.76], [68.98, 16.51, 0.85], [247.35, -26.43, 0.96],
-    [201.3, -11.16, 0.97], [116.33, 28.03, 1.14], [344.41, -29.62, 1.16],
-    [310.36, 45.28, 1.25], [191.93, -59.69, 1.25], [152.09, 11.97, 1.35],
-    [104.66, -28.97, 1.5], [113.65, 31.89, 1.62], [187.79, -57.11, 1.64],
-    [263.4, -37.1, 1.63], [81.28, 6.35, 1.64], [81.57, 28.61, 1.65],
-    [138.3, -69.72, 1.69], [84.05, -1.2, 1.69], [332.06, -46.96, 1.74],
-    [85.19, -1.94, 1.77], [193.51, 55.96, 1.77], [165.93, 61.75, 1.79],
-    [51.08, 49.86, 1.8], [107.1, -26.39, 1.84], [264.33, -43.0, 1.87],
-    [276.04, -34.38, 1.85], [125.63, -59.51, 1.86], [206.89, 49.31, 1.86],
-    [89.88, 44.95, 1.9], [252.17, -69.03, 1.91], [99.43, 16.4, 1.92],
-    [306.41, -56.74, 1.94], [37.95, 89.26, 1.98], [95.68, -17.96, 1.98],
-    [141.9, -8.66, 1.98], [31.79, 23.46, 2.0], [10.9, -17.99, 2.02],
-    [200.98, 54.93, 2.04], [283.82, -26.3, 2.06], [211.67, -36.37, 2.06],
-    [17.43, 35.62, 2.05], [2.1, 29.09, 2.06], [263.73, 12.56, 2.07],
-    [222.68, 74.16, 2.08], [86.94, -9.67, 2.09], [177.26, 14.57, 2.11],
-    [47.04, 40.96, 2.12], [340.67, -46.88, 2.11], [190.38, -48.96, 2.17],
-    [139.27, -59.28, 2.21], [137.0, -43.43, 2.21], [233.67, 26.71, 2.23],
-    [305.56, 40.26, 2.23], [10.13, 56.54, 2.24], [269.15, 51.49, 2.23],
-    [83.0, -0.3, 2.23], [2.29, 59.15, 2.27], [120.9, -40.0, 2.25],
-    [111.02, -29.3, 2.45], [14.18, 60.72, 2.47], [165.46, 56.38, 2.37],
-    [178.46, 53.69, 2.44], [326.05, 9.87, 2.39], [6.57, -42.31, 2.38],
-    [221.25, 27.07, 2.37], [21.45, 60.24, 2.68], [28.6, 63.67, 3.38],
-    [183.86, 57.03, 3.31], [292.68, 27.96, 3.18], [311.55, 33.97, 2.46],
+  private static readonly BRIGHT_STARS: ReadonlyArray<[number, number, number]> = [
+    [101.29, -16.72, -1.46],
+    [95.99, -52.7, -0.74],
+    [219.9, -60.83, -0.27],
+    [213.92, 19.18, -0.05],
+    [279.23, 38.78, 0.03],
+    [79.17, 46.0, 0.08],
+    [78.63, -8.2, 0.13],
+    [114.83, 5.22, 0.34],
+    [24.43, -57.24, 0.46],
+    [88.79, 7.41, 0.5],
+    [210.96, -60.37, 0.61],
+    [297.7, 8.87, 0.77],
+    [186.65, -63.1, 0.76],
+    [68.98, 16.51, 0.85],
+    [247.35, -26.43, 0.96],
+    [201.3, -11.16, 0.97],
+    [116.33, 28.03, 1.14],
+    [344.41, -29.62, 1.16],
+    [310.36, 45.28, 1.25],
+    [191.93, -59.69, 1.25],
+    [152.09, 11.97, 1.35],
+    [104.66, -28.97, 1.5],
+    [113.65, 31.89, 1.62],
+    [187.79, -57.11, 1.64],
+    [263.4, -37.1, 1.63],
+    [81.28, 6.35, 1.64],
+    [81.57, 28.61, 1.65],
+    [138.3, -69.72, 1.69],
+    [84.05, -1.2, 1.69],
+    [332.06, -46.96, 1.74],
+    [85.19, -1.94, 1.77],
+    [193.51, 55.96, 1.77],
+    [165.93, 61.75, 1.79],
+    [51.08, 49.86, 1.8],
+    [107.1, -26.39, 1.84],
+    [264.33, -43.0, 1.87],
+    [276.04, -34.38, 1.85],
+    [125.63, -59.51, 1.86],
+    [206.89, 49.31, 1.86],
+    [89.88, 44.95, 1.9],
+    [252.17, -69.03, 1.91],
+    [99.43, 16.4, 1.92],
+    [306.41, -56.74, 1.94],
+    [37.95, 89.26, 1.98],
+    [95.68, -17.96, 1.98],
+    [141.9, -8.66, 1.98],
+    [31.79, 23.46, 2.0],
+    [10.9, -17.99, 2.02],
+    [200.98, 54.93, 2.04],
+    [283.82, -26.3, 2.06],
+    [211.67, -36.37, 2.06],
+    [17.43, 35.62, 2.05],
+    [2.1, 29.09, 2.06],
+    [263.73, 12.56, 2.07],
+    [222.68, 74.16, 2.08],
+    [86.94, -9.67, 2.09],
+    [177.26, 14.57, 2.11],
+    [47.04, 40.96, 2.12],
+    [340.67, -46.88, 2.11],
+    [190.38, -48.96, 2.17],
+    [139.27, -59.28, 2.21],
+    [137.0, -43.43, 2.21],
+    [233.67, 26.71, 2.23],
+    [305.56, 40.26, 2.23],
+    [10.13, 56.54, 2.24],
+    [269.15, 51.49, 2.23],
+    [83.0, -0.3, 2.23],
+    [2.29, 59.15, 2.27],
+    [120.9, -40.0, 2.25],
+    [111.02, -29.3, 2.45],
+    [14.18, 60.72, 2.47],
+    [165.46, 56.38, 2.37],
+    [178.46, 53.69, 2.44],
+    [326.05, 9.87, 2.39],
+    [6.57, -42.31, 2.38],
+    [221.25, 27.07, 2.37],
+    [21.45, 60.24, 2.68],
+    [28.6, 63.67, 3.38],
+    [183.86, 57.03, 3.31],
+    [292.68, 27.96, 3.18],
+    [311.55, 33.97, 2.46],
     [296.24, 45.13, 2.87],
   ];
 
@@ -146,9 +204,7 @@ export class SpaceBackground {
   private buildSkybox(): THREE.Mesh {
     const geometry = new THREE.SphereGeometry(600, 60, 40);
     const loader = new THREE.TextureLoader();
-    const texture = loader.load('textures/milky_way.jpg', () =>
-      this.renderFrame(),
-    );
+    const texture = loader.load('textures/milky_way.jpg', () => this.renderFrame());
     texture.colorSpace = THREE.SRGBColorSpace;
 
     const material = new THREE.MeshBasicMaterial({
@@ -228,10 +284,7 @@ export class SpaceBackground {
   }
 
   /** Konwersja współrzędnych równikowych (J2000) na galaktyczne (stopnie). */
-  private equatorialToGalactic(
-    raDeg: number,
-    decDeg: number,
-  ): { l: number; b: number } {
+  private equatorialToGalactic(raDeg: number, decDeg: number): { l: number; b: number } {
     const rad = Math.PI / 180;
     const ra = raDeg * rad;
     const dec = decDeg * rad;
@@ -240,17 +293,15 @@ export class SpaceBackground {
     const lNcp = 122.93192 * rad; // długość galaktyczna bieguna niebieskiego
 
     const sinB =
-      Math.sin(dec) * Math.sin(decNgp) +
-      Math.cos(dec) * Math.cos(decNgp) * Math.cos(ra - raNgp);
+      Math.sin(dec) * Math.sin(decNgp) + Math.cos(dec) * Math.cos(decNgp) * Math.cos(ra - raNgp);
     const b = Math.asin(sinB);
     const l =
       lNcp -
       Math.atan2(
         Math.cos(dec) * Math.sin(ra - raNgp),
-        Math.sin(dec) * Math.cos(decNgp) -
-          Math.cos(dec) * Math.sin(decNgp) * Math.cos(ra - raNgp),
+        Math.sin(dec) * Math.cos(decNgp) - Math.cos(dec) * Math.sin(decNgp) * Math.cos(ra - raNgp),
       );
-    const lDeg = ((l / rad) % 360 + 360) % 360;
+    const lDeg = (((l / rad) % 360) + 360) % 360;
     return { l: lDeg, b: b / rad };
   }
 
@@ -330,11 +381,7 @@ export class SpaceBackground {
   }
 
   /** Chmura świecących cząstek rozmieszczonych w helikalnych ramionach. */
-  private createGalaxyCloud(
-    count: number,
-    size: number,
-    sprite: THREE.Texture,
-  ): THREE.Points {
+  private createGalaxyCloud(count: number, size: number, sprite: THREE.Texture): THREE.Points {
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
 
@@ -437,28 +484,19 @@ export class SpaceBackground {
       0.7 * Math.sin(y * 0.0021 + arm * 1.9) +
       0.45 * Math.sin(y * 0.0057 + 1.3) +
       0.3 * Math.sin(y * 0.011 + arm * 0.7);
-    let radial =
-      Math.pow(Math.random(), density) * maxRadial * Math.max(0.25, bulge) +
-      minRadial;
+    let radial = Math.pow(Math.random(), density) * maxRadial * Math.max(0.25, bulge) + minRadial;
     if (Math.random() < 0.25) {
       radial *= 1.4 + Math.random() * 1.3; // odstające kępy
     }
     // Rozrzut ~gaussowski rosnący z odległością od osi.
-    const spread =
-      (Math.random() + Math.random() + Math.random() - 1.5) *
-      (0.5 + radial * 0.004);
+    const spread = (Math.random() + Math.random() + Math.random() - 1.5) * (0.5 + radial * 0.004);
     // Skręt ramion różny dla każdego ramienia — mniej symetryczna spirala.
     const twist = 0.0042 + arm * 0.0009;
     const angle = y * twist + (arm * Math.PI * 2) / 3 + spread;
     // Wicie się osi: kolumna mocno faluje na boki wzdłuż wysokości.
     const wobbleX = 55 * Math.sin(y * 0.0016 + 0.8) + 20 * Math.sin(y * 0.0041);
     const wobbleZ = 45 * Math.sin(y * 0.0023 + 2.1) + 16 * Math.sin(y * 0.0035);
-    return [
-      Math.cos(angle) * radial + wobbleX,
-      y,
-      Math.sin(angle) * radial + wobbleZ,
-      radial,
-    ];
+    return [Math.cos(angle) * radial + wobbleX, y, Math.sin(angle) * radial + wobbleZ, radial];
   }
 
   /**
@@ -472,15 +510,43 @@ export class SpaceBackground {
     const loader = new GLTFLoader();
 
     const defs = [
-      { file: 'planets/jupiter.glb', radius: 105, pos: [355, 185, -430], speed: 0.05, tilt: 0.06, tiltX: 0 },
-      { file: 'planets/mars.glb', radius: 34, pos: [-260, 205, -360], speed: 0.08, tilt: 0.4, tiltX: 0 },
+      {
+        file: 'planets/jupiter.glb',
+        radius: 105,
+        pos: [355, 185, -430],
+        speed: 0.05,
+        tilt: 0.06,
+        tiltX: 0,
+      },
+      {
+        file: 'planets/mars.glb',
+        radius: 34,
+        pos: [-260, 205, -360],
+        speed: 0.08,
+        tilt: 0.4,
+        tiltX: 0,
+      },
       // Saturn pochylony też wokół osi X, by pierścienie odchyliły się ku
       // kamerze i były widoczne (samo pochylenie po Z daje widok krawędziowy).
       // Uwaga: planety muszą mieścić się w kuli skyboxa (promień 600 od
       // origin) albo skybox musi mieć depthWrite=false — inaczej jego
       // tekstura zasłania wszystko poza kulą.
-      { file: 'planets/saturn.glb', radius: 115, pos: [-395, -165, -430], speed: 0.06, tilt: 0.2, tiltX: 0.6 },
-      { file: 'planets/neptune.glb', radius: 46, pos: [285, -225, -400], speed: 0.07, tilt: 0.5, tiltX: 0 },
+      {
+        file: 'planets/saturn.glb',
+        radius: 115,
+        pos: [-395, -165, -430],
+        speed: 0.06,
+        tilt: 0.2,
+        tiltX: 0.6,
+      },
+      {
+        file: 'planets/neptune.glb',
+        radius: 46,
+        pos: [285, -225, -400],
+        speed: 0.07,
+        tilt: 0.5,
+        tiltX: 0,
+      },
     ] as const;
 
     for (const def of defs) {
@@ -488,9 +554,7 @@ export class SpaceBackground {
         const model = gltf.scene;
 
         // Normalizacja: wyśrodkuj model i przeskaluj do zadanego promienia.
-        const sphere = new THREE.Box3()
-          .setFromObject(model)
-          .getBoundingSphere(new THREE.Sphere());
+        const sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
         const scale = def.radius / sphere.radius;
         model.scale.setScalar(scale);
         model.position.copy(sphere.center).multiplyScalar(-scale);
@@ -499,9 +563,7 @@ export class SpaceBackground {
         model.traverse((node) => {
           if (node instanceof THREE.Mesh) {
             this.disposables.push(node.geometry);
-            const materials = Array.isArray(node.material)
-              ? node.material
-              : [node.material];
+            const materials = Array.isArray(node.material) ? node.material : [node.material];
             for (const material of materials) {
               this.disposables.push(material);
               const map = (material as THREE.MeshStandardMaterial).map;
@@ -587,14 +649,7 @@ export class SpaceBackground {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
     const ctx = canvas.getContext('2d')!;
-    const gradient = ctx.createRadialGradient(
-      size / 2,
-      size / 2,
-      0,
-      size / 2,
-      size / 2,
-      size / 2,
-    );
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     gradient.addColorStop(0, 'rgba(255,255,255,1)');
     gradient.addColorStop(0.25, 'rgba(255,255,255,0.85)');
     gradient.addColorStop(0.55, 'rgba(180,205,255,0.35)');
@@ -608,11 +663,28 @@ export class SpaceBackground {
 
   private bindEvents(reducedMotion: boolean): void {
     const onResize = () => {
-      this.resize();
-      if (reducedMotion) this.renderFrame();
+      cancelAnimationFrame(this.resizeFrameId);
+      this.resizeFrameId = requestAnimationFrame(() => {
+        this.resize();
+        if (reducedMotion || this.isDocumentVisible) this.renderFrame();
+      });
     };
     window.addEventListener('resize', onResize);
     this.cleanupFns.push(() => window.removeEventListener('resize', onResize));
+
+    const onVisibilityChange = () => {
+      this.isDocumentVisible = !document.hidden;
+      if (!this.isDocumentVisible) {
+        cancelAnimationFrame(this.frameId);
+        return;
+      }
+      if (reducedMotion) this.renderFrame();
+      else this.loop();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    this.cleanupFns.push(() =>
+      document.removeEventListener('visibilitychange', onVisibilityChange),
+    );
 
     if (reducedMotion) return;
 
@@ -623,15 +695,10 @@ export class SpaceBackground {
       );
     };
     window.addEventListener('pointermove', onPointerMove, { passive: true });
-    this.cleanupFns.push(() =>
-      window.removeEventListener('pointermove', onPointerMove),
-    );
+    this.cleanupFns.push(() => window.removeEventListener('pointermove', onPointerMove));
 
     const onScroll = () => {
-      const max = Math.max(
-        document.documentElement.scrollHeight - window.innerHeight,
-        1,
-      );
+      const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
       this.scrollTarget = window.scrollY / max;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -650,6 +717,7 @@ export class SpaceBackground {
   }
 
   private loop = (): void => {
+    if (this.destroyed || !this.isDocumentVisible) return;
     this.frameId = requestAnimationFrame(this.loop);
     this.elapsed += 0.0016;
 
@@ -694,9 +762,15 @@ export class SpaceBackground {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     cancelAnimationFrame(this.frameId);
+    cancelAnimationFrame(this.resizeFrameId);
     this.cleanupFns.forEach((fn) => fn());
     this.disposables.forEach((item) => item.dispose());
+    this.renderer?.renderLists.dispose();
+    this.renderer?.forceContextLoss();
     this.renderer?.dispose();
+    this.scene?.clear();
+    this.planetMeshes = [];
   }
 }
