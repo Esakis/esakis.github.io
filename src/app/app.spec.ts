@@ -1,41 +1,181 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 import { App } from './app';
 
 describe('App', () => {
+  let originalFetch: typeof fetch;
+
   beforeEach(async () => {
+    originalFetch = globalThis.fetch;
+    window.localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-
-    expect(fixture.componentInstance).toBeTruthy();
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
-  it('should render the Polish portfolio by default', () => {
+  function createApp(): { fixture: ComponentFixture<App>; app: any } {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    return { fixture, app: fixture.componentInstance as any };
+  }
 
-    expect(compiled.querySelector('h1')?.textContent).toContain('Tworzę oprogramowanie');
-    expect(compiled.querySelectorAll('.project-card')).toHaveLength(2);
-    expect(compiled.querySelector('#services')).toBeTruthy();
+  function fillValidForm(app: any): void {
+    app.contactName.set('Ada Lovelace');
+    app.contactEmail.set('ada@example.com');
+    app.contactMessage.set('Chcę porozmawiać o aplikacji.');
+  }
+
+  it('creates the application', () => {
+    expect(createApp().app).toBeTruthy();
   });
 
-  it('should switch the portfolio to English', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    const languageButtons = compiled.querySelectorAll<HTMLButtonElement>(
-      '.language-switcher button',
+  it('renders exactly two self-contained projects with stable identifiers', () => {
+    const { fixture, app } = createApp();
+    const projects = app.copy().projects;
+
+    expect(projects).toHaveLength(2);
+    expect(projects.map((project: { id: string }) => project.id)).toEqual([
+      'ksiegowa-jdg',
+      'technical-reporting-system',
+    ]);
+    expect(fixture.nativeElement.querySelectorAll('.project-card')).toHaveLength(2);
+  });
+
+  it('only renders a live-project link when the project has a liveUrl', () => {
+    const { fixture } = createApp();
+    const root = fixture.nativeElement as HTMLElement;
+    const cards = root.querySelectorAll<HTMLElement>('.project-card');
+
+    expect(cards[0].querySelector<HTMLAnchorElement>('.project-card__links a')?.href).toBe(
+      'https://www.ksiegowajdg.pl/',
     );
+    expect(cards[1].querySelector('.project-card__links a')).toBeNull();
+    expect(cards[1].querySelector('h3 a')).toBeNull();
+  });
 
-    languageButtons[1].click();
-    fixture.detectChanges();
+  it('contains complete primary copy in both languages', () => {
+    const { app } = createApp();
 
-    expect(compiled.querySelector('h1')?.textContent).toContain('I build software');
+    for (const language of ['pl', 'en'] as const) {
+      app.setLanguage(language);
+      const localized = app.copy();
+      expect(localized.heroTitle).toBeTruthy();
+      expect(localized.heroHighlight).toBeTruthy();
+      expect(localized.heroDescription).toBeTruthy();
+      expect(localized.form.submit).toBeTruthy();
+      expect(localized.services).toHaveLength(3);
+    }
+  });
+
+  it('updates the document language, title and metadata when the language changes', () => {
+    const { app } = createApp();
+    const description = document.createElement('meta');
+    description.name = 'description';
+    document.head.append(description);
+    const locale = document.createElement('meta');
+    locale.setAttribute('property', 'og:locale');
+    document.head.append(locale);
+    app.setLanguage('en');
+
     expect(document.documentElement.lang).toBe('en');
+    expect(document.title).toContain('Angular and .NET Developer');
+    expect(description.getAttribute('content')).toContain('custom web applications');
+    expect(locale.getAttribute('content')).toBe('en_US');
+  });
+
+  it('does not send an empty form and focuses validation', async () => {
+    const { app } = createApp();
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    await app.submitContact(new Event('submit'));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(app.formErrors()).toEqual({ name: 'required', email: 'required', message: 'required' });
+    expect(app.formState()).toBe('idle');
+  });
+
+  it('reports an invalid email address without sending', async () => {
+    const { app } = createApp();
+    app.contactName.set('Ada');
+    app.contactEmail.set('not-an-email');
+    app.contactMessage.set('Wiadomość');
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    await app.submitContact(new Event('submit'));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(app.formErrors().email).toBe('email');
+  });
+
+  it('does not claim success before a confirmed API response', async () => {
+    const { app } = createApp();
+    fillValidForm(app);
+    let resolveRequest!: (value: Response) => void;
+    globalThis.fetch = vi.fn(
+      () => new Promise<Response>((resolve) => (resolveRequest = resolve)),
+    ) as typeof fetch;
+
+    const request = app.submitContact(new Event('submit'));
+    expect(app.formState()).toBe('sending');
+
+    resolveRequest({ ok: true, json: async () => ({ success: true }) } as Response);
+    await request;
+    expect(app.formState()).toBe('success');
+  });
+
+  it('shows success and clears fields only after a 2xx successful response', async () => {
+    const { app } = createApp();
+    fillValidForm(app);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    }) as typeof fetch;
+
+    await app.submitContact(new Event('submit'));
+
+    expect(app.formState()).toBe('success');
+    expect(app.contactName()).toBe('');
+    expect(app.contactEmail()).toBe('');
+    expect(app.contactMessage()).toBe('');
+  });
+
+  it('shows an error for a rejected API response or network error', async () => {
+    const { app } = createApp();
+    fillValidForm(app);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ success: false }),
+    }) as typeof fetch;
+
+    await app.submitContact(new Event('submit'));
+    expect(app.formState()).toBe('error');
+
+    app.formState.set('idle');
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('network')) as typeof fetch;
+    await app.submitContact(new Event('submit'));
+    expect(app.formState()).toBe('error');
+  });
+
+  it('blocks duplicate submissions while a request is in progress', async () => {
+    const { app } = createApp();
+    fillValidForm(app);
+    let resolveRequest!: (value: Response) => void;
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => (resolveRequest = resolve)));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const first = app.submitContact(new Event('submit'));
+    const second = app.submitContact(new Event('submit'));
+    expect(app.formState()).toBe('sending');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ ok: true, json: async () => ({ success: true }) } as Response);
+    await Promise.all([first, second]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

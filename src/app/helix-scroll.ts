@@ -1,4 +1,5 @@
-import { afterNextRender, Directive, ElementRef, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { afterNextRender, Directive, ElementRef, inject, PLATFORM_ID } from '@angular/core';
 
 /**
  * Karuzela-helisa 3D: sekcje krążą wokół centralnego słupa Drogi Mlecznej,
@@ -19,6 +20,7 @@ import { afterNextRender, Directive, ElementRef, inject } from '@angular/core';
 })
 export class HelixScroll {
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
+  private readonly platformId = inject(PLATFORM_ID);
 
   // Geometria helisy.
   private readonly STEP = 60; // stopnie obrotu między panelami (6×60=360)
@@ -47,9 +49,13 @@ export class HelixScroll {
   private expandedIndex: number | null = null;
   private zooming = false; // blokuje aktualizacje sceny na czas animacji
   private zoomTimer: ReturnType<typeof setTimeout> | undefined;
+  private activePanelIndex = -1;
+  private resizeFrameId = 0;
 
   constructor() {
-    afterNextRender(() => this.init());
+    afterNextRender(() => {
+      if (isPlatformBrowser(this.platformId)) this.init();
+    });
   }
 
   private init(): void {
@@ -61,10 +67,13 @@ export class HelixScroll {
     this.evaluateMode();
 
     const onResize = () => {
-      if (this.expandedIndex !== null) this.collapseNow();
-      this.evaluateMode();
-      this.layout();
-      this.requestUpdate();
+      cancelAnimationFrame(this.resizeFrameId);
+      this.resizeFrameId = requestAnimationFrame(() => {
+        if (this.expandedIndex !== null) this.collapseNow();
+        this.evaluateMode();
+        this.layout();
+        this.requestUpdate();
+      });
     };
     window.addEventListener('resize', onResize);
     this.cleanupFns.push(() => window.removeEventListener('resize', onResize));
@@ -126,6 +135,7 @@ export class HelixScroll {
   /** Ustala statyczne pozycje paneli na cylindrze i wysokość toru scrolla. */
   private layout(): void {
     if (this.flat) {
+      this.activePanelIndex = -1;
       this.host.nativeElement.style.height = '';
       this.panels.forEach((panel) => {
         panel.style.transform = '';
@@ -198,13 +208,17 @@ export class HelixScroll {
 
     // Tylko karta na wprost pozostaje widoczna, aby tekst kart na helisie
     // nie nakładał się optycznie na sąsiednie, obrócone panele.
-    this.panels.forEach((panel, i) => {
-      const active = i === Math.round(p);
-      panel.style.opacity = active ? '1' : '0';
-      panel.style.visibility = active ? 'visible' : 'hidden';
-      panel.style.pointerEvents = active ? 'auto' : 'none';
-      panel.style.zIndex = active ? '2' : '1';
-    });
+    const activeIndex = Math.round(p);
+    if (force || activeIndex !== this.activePanelIndex) {
+      this.activePanelIndex = activeIndex;
+      this.panels.forEach((panel, i) => {
+        const active = i === activeIndex;
+        panel.style.opacity = active ? '1' : '0';
+        panel.style.visibility = active ? 'visible' : 'hidden';
+        panel.style.pointerEvents = active ? 'auto' : 'none';
+        panel.style.zIndex = active ? '2' : '1';
+      });
+    }
   }
 
   // --- Stronicowanie: karty przechodzą zawsze w całości -------------------
@@ -538,6 +552,7 @@ export class HelixScroll {
     if (typeof cancelAnimationFrame === 'function') {
       cancelAnimationFrame(this.frameId);
       cancelAnimationFrame(this.animFrameId);
+      cancelAnimationFrame(this.resizeFrameId);
     }
     clearTimeout(this.settleTimer);
     clearTimeout(this.zoomTimer);

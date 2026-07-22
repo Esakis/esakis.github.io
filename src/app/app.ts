@@ -1,5 +1,6 @@
-import { DOCUMENT } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser, PlatformLocation } from '@angular/common';
+import { PLATFORM_ID, afterNextRender, Component, computed, inject, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { SpaceBackground } from './space-background/space-background';
 import { HelixScroll } from './helix-scroll';
 
@@ -7,6 +8,41 @@ type Language = 'pl' | 'en';
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 type FormField = 'name' | 'email' | 'message';
 type FieldError = 'required' | 'email';
+
+const SITE_URL = 'https://esakis.github.io';
+const LANGUAGE_PATHS: Record<Language, string> = {
+  pl: '/pl/',
+  en: '/en/',
+};
+
+interface PortfolioScreenshot {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
+/** Complete, self-contained data for a single portfolio case study. */
+interface PortfolioProject {
+  id: string;
+  number: string;
+  title: string;
+  category: string;
+  description: string;
+  problem: string;
+  solution: string;
+  role: string;
+  result: string;
+  status: string;
+  features: readonly string[];
+  tags: readonly string[];
+  accent: 'cyan' | 'lime';
+  screenshots: readonly PortfolioScreenshot[];
+  visualTitle: string;
+  visualText: string;
+  liveUrl?: string;
+  repositoryUrl?: string;
+}
 
 // Klucz publiczny Web3Forms (z założenia trafia do bundla frontendu).
 const WEB3FORMS_ACCESS_KEY = 'dfc5ddeb-3ac2-455e-bbbb-996e1cd77cec';
@@ -22,7 +58,13 @@ const PROFILE = {
 
 const CONTENT = {
   pl: {
-    metaTitle: 'Programista .NET i Angular Kraków | Łukasz Sroka Tech',
+    metaTitle: 'Programista Angular i .NET | Dedykowane aplikacje dla firm – Łukasz Sroka',
+    metaDescription:
+      'Tworzę i rozwijam dedykowane aplikacje webowe dla firm w Angular i .NET. Systemy biznesowe, integracje API, modernizacja aplikacji i wdrożenia.',
+    ogTitle: 'Programista Angular i .NET | Łukasz Sroka Tech',
+    ogDescription:
+      'Dedykowane aplikacje webowe dla firm — Angular, .NET, integracje API i rozwój systemów.',
+    ogLocale: 'pl_PL',
     skipLink: 'Przejdź do treści',
     nav: [
       { label: 'O firmie', id: 'about' },
@@ -37,11 +79,11 @@ const CONTENT = {
     menuLabel: 'Otwórz menu',
     closeMenuLabel: 'Zamknij menu',
     availability: 'Przyjmuję nowe projekty',
-    eyebrow: 'Aplikacje webowe / Full-stack',
-    heroTitle: 'Tworzę oprogramowanie, które',
-    heroHighlight: 'wspiera Twój biznes.',
+    eyebrow: 'Dedykowane aplikacje webowe / Angular + .NET',
+    heroTitle: 'Tworzę aplikacje webowe',
+    heroHighlight: 'dla firm w Angular i .NET.',
     heroDescription:
-      'Projektuję, buduję i rozwijam aplikacje webowe - od pierwszej wersji produktu po rozbudowę istniejących systemów.',
+      'Projektuję nowe systemy, rozwijam istniejące aplikacje i integruję je z zewnętrznymi usługami — od analizy i implementacji po wdrożenie oraz dalszy rozwój.',
     heroPrimary: 'Zobacz realizacje',
     heroSecondary: 'Porozmawiajmy o projekcie',
     heroNote: 'Kraków, Polska · Współpraca zdalna',
@@ -89,28 +131,32 @@ const CONTENT = {
       'PostgreSQL / SQL Server',
       'Docker',
       'Azure',
-      'Python',
+      'RabbitMQ',
+      'Git',
     ],
     projectsKicker: '02 / Realizacje',
     projectsTitle: 'Case studies: od produktu po stabilne systemy.',
     projectsIntro: 'Wybrane realizacje pokazujące problem, zakres pracy i zastosowane rozwiązania.',
     projectRoleLabel: 'Rola i zakres',
     projectProblemLabel: 'Problem użytkownika',
+    projectSolutionLabel: 'Zaprojektowane rozwiązanie',
     projectFeaturesLabel: 'Najważniejsze funkcje',
-    projectArchitectureLabel: 'Architektura i technologia',
-    projectStageLabel: 'Obecny etap',
+    projectResultLabel: 'Rezultat i zakres',
+    projectStatusLabel: 'Status projektu',
     projectLive: 'Zobacz aplikację',
     projects: [
       {
+        id: 'ksiegowa-jdg',
         number: '01',
         title: 'Księgowa JDG',
         category: 'Produkt SaaS / FinTech',
         description:
           'Aplikacja webowa wspierająca jednoosobowe działalności gospodarcze w wystawianiu faktur, obsłudze KSeF, rejestrowaniu kosztów i pilnowaniu terminów podatkowych.',
-        role:
-          'Autor rozwiązania: projekt produktu, frontend Angular, backend .NET, baza danych, integracje z usługami zewnętrznymi, wdrożenie i utrzymanie.',
+        role: 'Autor rozwiązania: projekt produktu, frontend Angular, backend .NET, baza danych, integracje z usługami zewnętrznymi, wdrożenie i utrzymanie.',
         problem:
           'Właściciel JDG potrzebuje jednego miejsca do obsługi dokumentów i bieżących obowiązków bez ręcznego łączenia wielu narzędzi oraz terminów.',
+        solution:
+          'Aplikacja łączy wystawianie faktur, obsługę dokumentów kosztowych i przypomnienia o obowiązkach w jednym środowisku.',
         features: [
           'KSeF i faktury',
           'Koszty ze zdjęcia paragonu',
@@ -118,26 +164,31 @@ const CONTENT = {
           'Rozliczenia VAT oraz ZUS',
           'Przypomnienia o terminach',
         ],
-        architecture:
-          'Angular, .NET, relacyjna baza danych oraz integracje KSeF i usług wspierających księgowość.',
-        stage: 'Publicznie dostępny produkt rozwijany i utrzymywany na bieżąco.',
+        result:
+          'Aktualna wersja obejmuje obsługę faktur, kosztów, KPiR, JPK_V7M oraz bieżących rozliczeń i terminów.',
+        status: 'Publicznie dostępny produkt rozwijany i utrzymywany na bieżąco.',
         tags: ['Angular', '.NET', 'KSeF', 'JPK_V7M'],
         accent: 'cyan',
         screenshots: [
           {
             src: 'ksiegowa-jdg-pulpit.png',
             alt: 'Pulpit Księgowej JDG dla firmy testowej z zadaniami i zobowiązaniami',
+            width: 2000,
+            height: 1250,
           },
           {
             src: 'ksiegowa-jdg-faktury.png',
             alt: 'Widok faktur Księgowej JDG dla firmy testowej',
+            width: 2000,
+            height: 1250,
           },
         ],
         visualTitle: '',
         visualText: '',
-        url: 'https://www.ksiegowajdg.pl',
+        liveUrl: 'https://www.ksiegowajdg.pl',
       },
       {
+        id: 'technical-reporting-system',
         number: '02',
         title: 'System raportowania i edycji dokumentów technicznych',
         category: 'Anonimowa realizacja / Angular',
@@ -146,22 +197,25 @@ const CONTENT = {
         role: 'Projektowanie i implementacja frontendu Angular dla złożonego procesu edycji dokumentów.',
         problem:
           'Użytkownicy potrzebowali przygotowywać i aktualizować dokumentację techniczną bez ręcznego składania raportów w osobnych narzędziach.',
+        solution:
+          'Interaktywny obszar roboczy porządkuje edycję raportów i przygotowanie eksportów w jednym procesie.',
         features: [
           'Interaktywny obszar roboczy',
           'Edycja raportów',
           'Eksport do PDF',
           'Eksport formatów graficznych',
         ],
-        architecture: 'Angular oraz komponenty interaktywnego obszaru roboczego z mechanizmem eksportu dokumentów.',
-        stage: 'Zrealizowany projekt klienta; nazwa i materiały objęte poufnością.',
+        result:
+          'Zakres dostarczonego frontendu obejmował edycję raportów oraz eksport dokumentów do PDF i formatów graficznych.',
+        status: 'Zrealizowany projekt klienta; nazwa i materiały objęte poufnością.',
         tags: ['Angular', 'TypeScript', 'PDF', 'Eksport'],
         accent: 'lime',
         screenshots: [],
         visualTitle: 'Edytor raportów',
         visualText: 'Angular / PDF / grafika',
-        url: null,
+        liveUrl: undefined,
       },
-    ],
+    ] satisfies readonly PortfolioProject[],
     servicesKicker: '03 / Usługi',
     servicesTitle: 'Od koncepcji do sprawnie działającego produktu.',
     services: [
@@ -235,7 +289,13 @@ const CONTENT = {
     backToTop: 'Wróć na górę',
   },
   en: {
-    metaTitle: '.NET and Angular Developer Krakow | Łukasz Sroka Tech',
+    metaTitle: 'Angular and .NET Developer | Custom web applications for businesses – Łukasz Sroka',
+    metaDescription:
+      'I build and develop custom web applications for businesses with Angular and .NET. Business systems, API integrations, application modernization and delivery.',
+    ogTitle: 'Angular and .NET Developer | Łukasz Sroka Tech',
+    ogDescription:
+      'Custom web applications for businesses — Angular, .NET, API integrations and system development.',
+    ogLocale: 'en_US',
     skipLink: 'Skip to content',
     nav: [
       { label: 'About', id: 'about' },
@@ -250,11 +310,11 @@ const CONTENT = {
     menuLabel: 'Open menu',
     closeMenuLabel: 'Close menu',
     availability: 'Available for new projects',
-    eyebrow: 'Web applications / Full-stack',
-    heroTitle: 'I build software that',
-    heroHighlight: 'moves your business forward.',
+    eyebrow: 'Custom web applications / Angular + .NET',
+    heroTitle: 'I build web applications',
+    heroHighlight: 'for businesses with Angular and .NET.',
     heroDescription:
-      "I design, build and develop web applications - from a product's first version to the expansion of existing systems.",
+      'I design new systems, develop existing applications and integrate them with external services — from analysis and implementation to delivery and continued development.',
     heroPrimary: 'Explore the work',
     heroSecondary: "Let's discuss your project",
     heroNote: 'Krakow, Poland · Remote collaboration',
@@ -302,28 +362,32 @@ const CONTENT = {
       'PostgreSQL / SQL Server',
       'Docker',
       'Azure',
-      'Python',
+      'RabbitMQ',
+      'Git',
     ],
     projectsKicker: '02 / Work',
     projectsTitle: 'Case studies: from product to resilient systems.',
     projectsIntro: 'Selected work showing the problem, scope and solutions behind each project.',
     projectRoleLabel: 'Role and scope',
     projectProblemLabel: 'User problem',
+    projectSolutionLabel: 'Designed solution',
     projectFeaturesLabel: 'Key features',
-    projectArchitectureLabel: 'Architecture and technology',
-    projectStageLabel: 'Current stage',
+    projectResultLabel: 'Result and scope',
+    projectStatusLabel: 'Project status',
     projectLive: 'View application',
     projects: [
       {
+        id: 'ksiegowa-jdg',
         number: '01',
         title: 'Księgowa JDG',
         category: 'SaaS product / FinTech',
         description:
           'A web application that helps sole proprietors issue invoices, work with KSeF, register expenses and stay on top of tax deadlines.',
-        role:
-          'Solution author: product design, Angular frontend, .NET backend, database, external-service integrations, deployment and maintenance.',
+        role: 'Solution author: product design, Angular frontend, .NET backend, database, external-service integrations, deployment and maintenance.',
         problem:
           'A sole proprietor needs one place to manage documents and recurring obligations instead of manually coordinating separate tools and deadlines.',
+        solution:
+          'The application brings invoice issuing, expense documents and obligation reminders into one environment.',
         features: [
           'KSeF and invoices',
           'Receipt-photo expenses',
@@ -331,26 +395,31 @@ const CONTENT = {
           'VAT and ZUS settlements',
           'Deadline reminders',
         ],
-        architecture:
-          'Angular, .NET, a relational database, and KSeF integrations plus services that support accounting workflows.',
-        stage: 'A publicly available product that is actively developed and maintained.',
+        result:
+          'The current version covers invoices, expenses, the tax ledger, JPK_V7M, and ongoing settlements and deadlines.',
+        status: 'A publicly available product that is actively developed and maintained.',
         tags: ['Angular', '.NET', 'KSeF', 'JPK_V7M'],
         accent: 'cyan',
         screenshots: [
           {
             src: 'ksiegowa-jdg-pulpit.png',
             alt: 'Księgowa JDG dashboard for a test company with tasks and obligations',
+            width: 2000,
+            height: 1250,
           },
           {
             src: 'ksiegowa-jdg-faktury.png',
             alt: 'Księgowa JDG invoice view for a test company',
+            width: 2000,
+            height: 1250,
           },
         ],
         visualTitle: '',
         visualText: '',
-        url: 'https://www.ksiegowajdg.pl',
+        liveUrl: 'https://www.ksiegowajdg.pl',
       },
       {
+        id: 'technical-reporting-system',
         number: '02',
         title: 'Technical reporting and document-editing system',
         category: 'Anonymous project / Angular',
@@ -359,22 +428,20 @@ const CONTENT = {
         role: 'Design and implementation of an Angular frontend for a complex document-editing workflow.',
         problem:
           'Users needed to prepare and update technical documentation without assembling reports manually in separate tools.',
-        features: [
-          'Interactive workspace',
-          'Report editing',
-          'PDF export',
-          'Image-format export',
-        ],
-        architecture: 'Angular and interactive-workspace components with a document-export mechanism.',
-        stage: 'Delivered client project; the name and materials are confidential.',
+        solution:
+          'An interactive workspace brings report editing and export preparation into one workflow.',
+        features: ['Interactive workspace', 'Report editing', 'PDF export', 'Image-format export'],
+        result:
+          'The delivered frontend scope included report editing and document exports to PDF and image formats.',
+        status: 'Delivered client project; the name and materials are confidential.',
         tags: ['Angular', 'TypeScript', 'PDF', 'Export'],
         accent: 'lime',
         screenshots: [],
         visualTitle: 'Report editor',
         visualText: 'Angular / PDF / images',
-        url: null,
+        liveUrl: undefined,
       },
-    ],
+    ] satisfies readonly PortfolioProject[],
     servicesKicker: '03 / Services',
     servicesTitle: 'From concept to a product that runs smoothly.',
     services: [
@@ -451,14 +518,16 @@ const CONTENT = {
 
 @Component({
   selector: 'app-root',
-  imports: [SpaceBackground, HelixScroll],
+  imports: [SpaceBackground, HelixScroll, RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
   private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly location = inject(PlatformLocation);
 
-  protected readonly language = signal<Language>('pl');
+  protected readonly language = signal<Language>(this.languageFromPath());
   protected readonly menuOpen = signal(false);
   protected readonly copy = computed(() => CONTENT[this.language()]);
   protected readonly profile = PROFILE;
@@ -472,18 +541,37 @@ export class App {
   protected readonly formState = signal<FormState>('idle');
   protected readonly formErrors = signal<Partial<Record<FormField, FieldError>>>({});
 
-  // Sygnały antybotowe: czas pierwszej interakcji z formularzem i liczba
-  // zdarzeń wpisywania. Bot wypełnia pola i klika „wyślij" w ułamku sekundy,
-  // człowiek potrzebuje na to co najmniej kilku sekund pisania.
-  private formFirstInputAt = 0;
-  private formInputEvents = 0;
-  private static readonly MIN_FILL_TIME_MS = 3000;
-  private static readonly MIN_INPUT_EVENTS = 6;
+  private static readonly CONTACT_REQUEST_TIMEOUT_MS = 15_000;
+
+  constructor() {
+    this.applyLanguage(this.language());
+    afterNextRender(() => {
+      if (!isPlatformBrowser(this.platformId)) return;
+      if (this.isStaticLanguagePath()) return;
+      const savedLanguage = this.readSavedLanguage();
+      if (savedLanguage) this.setLanguage(savedLanguage);
+    });
+  }
 
   protected setLanguage(language: Language): void {
+    this.applyLanguage(language);
+    if (isPlatformBrowser(this.platformId) && !this.isStaticLanguagePath()) {
+      try {
+        window.localStorage.setItem('portfolio-language', language);
+      } catch {
+        // Privacy settings can deny storage; the language still changes for this visit.
+      }
+    }
+  }
+
+  protected languageHref(language: Language): string {
+    return LANGUAGE_PATHS[language];
+  }
+
+  private applyLanguage(language: Language): void {
     this.language.set(language);
     this.document.documentElement.lang = language;
-    this.document.title = CONTENT[language].metaTitle;
+    this.updateMetadata(language);
   }
 
   protected toggleMenu(): void {
@@ -500,9 +588,6 @@ export class App {
     else if (field === 'email') this.contactEmail.set(value);
     else this.contactMessage.set(value);
 
-    if (this.formFirstInputAt === 0) this.formFirstInputAt = Date.now();
-    this.formInputEvents++;
-
     // Czyścimy błąd edytowanego pola oraz status z poprzedniej próby.
     if (this.formErrors()[field]) {
       const next = { ...this.formErrors() };
@@ -518,21 +603,6 @@ export class App {
     event.preventDefault();
     if (this.formState() === 'sending') return; // blokada wielokrotnego wysłania
 
-    // Warstwy antyspamowe — botowi udajemy sukces, ale niczego nie wysyłamy:
-    // 1) honeypot: ukryte pole wypełniają tylko boty;
-    // 2) bramka czasowa: wypełnienie i wysłanie szybciej niż w ~3 s to bot;
-    // 3) realne wpisywanie: brak zdarzeń input = wartości wstrzyknięte skryptem.
-    const filledTooFast =
-      this.formFirstInputAt === 0 || Date.now() - this.formFirstInputAt < App.MIN_FILL_TIME_MS;
-    if (
-      this.honeypot().trim() !== '' ||
-      filledTooFast ||
-      this.formInputEvents < App.MIN_INPUT_EVENTS
-    ) {
-      this.formState.set('success');
-      return;
-    }
-
     const name = this.contactName().trim();
     const email = this.contactEmail().trim();
     const message = this.contactMessage().trim();
@@ -545,10 +615,19 @@ export class App {
     this.formErrors.set(errors);
     if (Object.keys(errors).length > 0) {
       this.formState.set('idle');
+      this.focusFirstInvalidField(errors);
+      return;
+    }
+
+    // Honeypot zatrzymuje podejrzane zgłoszenie, ale nigdy nie udaje sukcesu.
+    if (this.honeypot().trim() !== '') {
+      this.formState.set('idle');
       return;
     }
 
     this.formState.set('sending');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), App.CONTACT_REQUEST_TIMEOUT_MS);
     try {
       // FormData (multipart/form-data) to „proste" żądanie — nie wywołuje
       // preflightu CORS, w przeciwieństwie do application/json.
@@ -563,6 +642,7 @@ export class App {
       const response = await fetch(WEB3FORMS_ENDPOINT, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
       const data = (await response.json()) as { success?: boolean };
       if (response.ok && data.success) {
@@ -575,6 +655,66 @@ export class App {
       }
     } catch {
       this.formState.set('error');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private focusFirstInvalidField(errors: Partial<Record<FormField, FieldError>>): void {
+    const firstField: FormField | undefined = (['name', 'email', 'message'] as const).find(
+      (field) => !!errors[field],
+    );
+    this.document.getElementById(firstField ? `contact-${firstField}` : '')?.focus();
+  }
+
+  private updateMetadata(language: Language): void {
+    const metadata = CONTENT[language];
+    const canonicalUrl = `${SITE_URL}${this.canonicalPath(language)}`;
+    this.document.title = metadata.metaTitle;
+    this.setMetaContent('meta[name="description"]', metadata.metaDescription);
+    this.setMetaContent('meta[property="og:title"]', metadata.ogTitle);
+    this.setMetaContent('meta[property="og:description"]', metadata.ogDescription);
+    this.setMetaContent('meta[property="og:locale"]', metadata.ogLocale);
+    this.setMetaContent('meta[name="twitter:title"]', metadata.ogTitle);
+    this.setMetaContent('meta[name="twitter:description"]', metadata.ogDescription);
+    this.setMetaContent('meta[property="og:url"]', canonicalUrl);
+    this.setLinkHref('link[rel="canonical"]', canonicalUrl);
+  }
+
+  private setMetaContent(selector: string, content: string): void {
+    this.document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content', content);
+  }
+
+  private setLinkHref(selector: string, href: string): void {
+    this.document.querySelector<HTMLLinkElement>(selector)?.setAttribute('href', href);
+  }
+
+  private languageFromPath(): Language {
+    return this.pathname().startsWith('/en') ? 'en' : 'pl';
+  }
+
+  private canonicalPath(language: Language): string {
+    const pathname = this.pathname();
+    if (pathname.startsWith('/pl')) return LANGUAGE_PATHS.pl;
+    if (pathname.startsWith('/en')) return LANGUAGE_PATHS.en;
+    return language === 'en' ? LANGUAGE_PATHS.en : '/';
+  }
+
+  private isStaticLanguagePath(): boolean {
+    return /^\/(pl|en)(?:\/|$)/.test(this.pathname());
+  }
+
+  private pathname(): string {
+    if (isPlatformBrowser(this.platformId)) return window.location.pathname;
+    return this.location.pathname;
+  }
+
+  private readSavedLanguage(): Language | undefined {
+    try {
+      const language = window.localStorage.getItem('portfolio-language');
+      return language === 'pl' || language === 'en' ? language : undefined;
+    } catch {
+      return undefined;
     }
   }
 }
