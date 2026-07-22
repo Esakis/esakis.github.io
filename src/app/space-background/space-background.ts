@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { shouldSkipPlanetModels } from '../effects-policy';
 
 /**
  * Pełnoekranowe tło WebGL: realna panorama Drogi Mlecznej jako skybox,
@@ -18,8 +19,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
  * Solar System Scope (CC BY 4.0).
  *
  * Niebo i słup obracają się o pełne 360° wraz z przewijaniem strony.
- * Renderer żyje poza wykrywaniem zmian Angulara (pętla rAF), respektuje
- * `prefers-reduced-motion` i zwalnia zasoby GPU przy zniszczeniu.
+ * Renderer żyje poza wykrywaniem zmian Angulara (pętla rAF), pomija modele
+ * planet przy ograniczonych efektach i zwalnia zasoby GPU przy zniszczeniu.
  */
 @Component({
   selector: 'app-space-background',
@@ -77,6 +78,7 @@ export class SpaceBackground {
   private init(): void {
     const canvas = this.canvasRef().nativeElement;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    const skipPlanets = shouldSkipPlanetModels();
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -96,7 +98,7 @@ export class SpaceBackground {
 
     scene.add(this.buildSkybox());
     scene.add(this.buildPillar());
-    scene.add(this.buildPlanets());
+    if (!skipPlanets) scene.add(this.buildPlanets());
     scene.add(this.buildForegroundStars());
     this.addLights(scene);
 
