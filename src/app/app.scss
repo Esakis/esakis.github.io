@@ -1550,6 +1550,25 @@
       }
     }
   }
+
+  &__privacy {
+    margin-top: 0.6rem;
+    color: #8f9bbf;
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    line-height: 1.5;
+    text-align: center;
+
+    a {
+      color: #7c8bd0;
+      text-underline-offset: 0.16em;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--cyan);
+      }
+    }
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -2408,9 +2427,12 @@
     gap: 1rem;
     padding-block: 1.5rem;
 
-    p {
+    .footer__details {
       grid-row: 2;
       grid-column: 1 / -1;
+    }
+
+    p {
       text-align: left;
     }
   }

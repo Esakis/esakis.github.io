@@ -67,7 +67,8 @@ describe('App', () => {
       expect(localized.heroHighlight).toBeTruthy();
       expect(localized.heroDescription).toBeTruthy();
       expect(localized.form.submit).toBeTruthy();
-      expect(localized.form.privacy).toBeTruthy();
+      expect(localized.form.privacyNotice).toBeTruthy();
+      expect(localized.privacyPolicy).toBeTruthy();
       expect(localized.services).toHaveLength(3);
     }
   });
@@ -88,7 +89,10 @@ describe('App', () => {
     expect(form?.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.required).toBe(
       true,
     );
-    expect(root.querySelector<HTMLAnchorElement>('.contact__privacy a')?.href).toBe(
+    expect(root.querySelector<HTMLAnchorElement>('.contact__privacy a')?.getAttribute('href')).toBe(
+      '/pl/#privacy-policy',
+    );
+    expect(root.querySelector<HTMLAnchorElement>('.footer__privacy a')?.href).toBe(
       'https://web3forms.com/privacy',
     );
   });

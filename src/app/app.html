@@ -480,10 +480,8 @@
             </div>
 
             <p class="contact__privacy">
-              {{ copy().form.privacy }}
-              <a href="https://web3forms.com/privacy" target="_blank" rel="noopener noreferrer">{{
-                copy().form.privacyLink
-              }}</a>
+              {{ copy().form.privacyNotice }}
+              <a [href]="fragmentHref('privacy-policy')">{{ copy().form.privacyLink }}</a>
             </p>
 
             <button
@@ -526,17 +524,25 @@
     <a class="brand" [href]="fragmentHref('top')" [attr.aria-label]="copy().homeLabel">
       <img class="brand__logo" src="logo.svg" alt="" width="40" height="40" />
     </a>
-    <p>
-      © {{ currentYear }} {{ profile.name }}. {{ copy().footerNote }}
-      <span class="footer__credit"
-        >Droga Mleczna: ESO/S. Brunier (<a
-          href="https://creativecommons.org/licenses/by/4.0/"
-          target="_blank"
-          rel="noopener noreferrer"
-          >CC BY 4.0</a
-        >) · Modele planet: NASA</span
-      >
-    </p>
+    <div class="footer__details">
+      <p>
+        © {{ currentYear }} {{ profile.name }}. {{ copy().footerNote }}
+        <span class="footer__credit"
+          >Droga Mleczna: ESO/S. Brunier (<a
+            href="https://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >CC BY 4.0</a
+          >) · Modele planet: NASA</span
+        >
+      </p>
+      <p id="privacy-policy" class="footer__privacy">
+        {{ copy().privacyPolicy }}
+        <a href="https://web3forms.com/privacy" target="_blank" rel="noopener noreferrer">{{
+          copy().privacyPolicyLink
+        }}</a>
+      </p>
+    </div>
     <a [href]="fragmentHref('top')">{{ copy().backToTop }} <span aria-hidden="true">↑</span></a>
   </div>
 </footer>

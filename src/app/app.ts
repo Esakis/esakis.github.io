@@ -292,12 +292,14 @@ const CONTENT = {
       errorRequired: 'To pole jest wymagane.',
       errorEmail: 'Podaj poprawny adres e-mail.',
       subject: 'Nowa wiadomość z portfolio',
-      privacy:
-        'Administratorem danych jest Łukasz Sroka Tech. Dane podane w formularzu (imię, adres e-mail i treść wiadomości) są przekazywane do Web3Forms wyłącznie w celu obsługi zapytania i udzielenia odpowiedzi.',
-      privacyLink: 'Polityka prywatności Web3Forms',
+      privacyNotice: 'Dane przetwarzam wyłącznie, aby odpowiedzieć na zapytanie. Szczegóły znajdziesz w',
+      privacyLink: 'polityce prywatności.',
     },
     socialLabel: 'Zobacz także',
     footerNote: 'Aplikacje webowe tworzone z dbałością o detal.',
+    privacyPolicy:
+      'Administratorem danych jest Łukasz Sroka Tech. Dane podane w formularzu (imię, adres e-mail i treść wiadomości) są przekazywane do Web3Forms wyłącznie w celu obsługi zapytania i udzielenia odpowiedzi.',
+    privacyPolicyLink: 'Polityka prywatności Web3Forms',
     backToTop: 'Wróć na górę',
   },
   en: {
@@ -522,12 +524,14 @@ const CONTENT = {
       errorRequired: 'This field is required.',
       errorEmail: 'Please enter a valid e-mail address.',
       subject: 'New message from portfolio',
-      privacy:
-        'Łukasz Sroka Tech is the data controller. The data entered in this form (name, e-mail address, and message) is sent to Web3Forms solely to handle your enquiry and provide a response.',
-      privacyLink: 'Web3Forms privacy policy',
+      privacyNotice: 'I process your data only to respond to your enquiry. Details are available in the',
+      privacyLink: 'privacy policy.',
     },
     socialLabel: 'Also available here',
     footerNote: 'Web applications built with attention to detail.',
+    privacyPolicy:
+      'Łukasz Sroka Tech is the data controller. The data entered in this form (name, e-mail address, and message) is sent to Web3Forms solely to handle your enquiry and provide a response.',
+    privacyPolicyLink: 'Web3Forms privacy policy',
     backToTop: 'Back to top',
   },
 } as const;
