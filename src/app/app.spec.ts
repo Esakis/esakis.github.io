@@ -20,7 +20,8 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('h1')?.textContent).toContain('Tworzę oprogramowanie');
-    expect(compiled.querySelectorAll('.project-card')).toHaveLength(1);
+    expect(compiled.querySelectorAll('.project-card')).toHaveLength(2);
+    expect(compiled.querySelector('#services')).toBeTruthy();
   });
 
   it('should switch the portfolio to English', () => {

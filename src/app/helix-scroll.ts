@@ -217,7 +217,13 @@ export class HelixScroll {
 
   private onWheel(event: WheelEvent): void {
     if (this.flat) return;
-    if (this.expandedIndex !== null || this.zooming) {
+    if (this.expandedIndex !== null) {
+      const panel = this.panels[this.expandedIndex];
+      if (panel) panel.scrollTop += event.deltaY;
+      event.preventDefault();
+      return;
+    }
+    if (this.zooming) {
       event.preventDefault();
       return;
     }
@@ -230,6 +236,16 @@ export class HelixScroll {
     if (textarea && textarea.scrollHeight > textarea.clientHeight) {
       const atTop = textarea.scrollTop <= 0;
       const atBottom = textarea.scrollTop + textarea.clientHeight >= textarea.scrollHeight - 1;
+      if ((direction < 0 && !atTop) || (direction > 0 && !atBottom)) return;
+    }
+
+    // Rozbudowane case studies mają własny scroll wewnątrz karty helisy.
+    // Dopóki zawartość nie dotrze do krawędzi, kółko nie przełącza sekcji.
+    const scrollPanel = (event.target as HTMLElement | null)?.closest<HTMLElement>('.helix-panel');
+    if (scrollPanel && scrollPanel.scrollHeight > scrollPanel.clientHeight) {
+      const atTop = scrollPanel.scrollTop <= 0;
+      const atBottom =
+        scrollPanel.scrollTop + scrollPanel.clientHeight >= scrollPanel.scrollHeight - 1;
       if ((direction < 0 && !atTop) || (direction > 0 && !atBottom)) return;
     }
 
@@ -519,8 +535,10 @@ export class HelixScroll {
   }
 
   ngOnDestroy(): void {
-    cancelAnimationFrame(this.frameId);
-    cancelAnimationFrame(this.animFrameId);
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.frameId);
+      cancelAnimationFrame(this.animFrameId);
+    }
     clearTimeout(this.settleTimer);
     clearTimeout(this.zoomTimer);
     this.cleanupFns.forEach((fn) => fn());

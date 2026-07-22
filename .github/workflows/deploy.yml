@@ -28,8 +28,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build (base-href dla GitHub Pages)
-        run: npm run build -- --base-href /Portfolio/
+      - name: Build
+        run: npm run build -- --base-href /
 
       - uses: actions/upload-pages-artifact@v5
         with:

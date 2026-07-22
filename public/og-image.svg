@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">Łukasz Sroka Tech - Angular i .NET</title>
+  <desc id="description">Dedykowane aplikacje webowe dla firm</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05060f" />
+      <stop offset="1" stop-color="#101637" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#56d4ff" />
+      <stop offset="0.52" stop-color="#a7f36c" />
+      <stop offset="1" stop-color="#ff5a82" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="42" />
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)" />
+  <g opacity="0.18" stroke="#8da0d3" stroke-width="1">
+    <path d="M0 90H1200M0 180H1200M0 270H1200M0 360H1200M0 450H1200M0 540H1200" />
+    <path d="M90 0V630M180 0V630M270 0V630M360 0V630M450 0V630M540 0V630M630 0V630M720 0V630M810 0V630M900 0V630M990 0V630M1080 0V630M1170 0V630" />
+  </g>
+  <circle cx="1040" cy="160" r="170" fill="#7458d6" opacity="0.24" filter="url(#glow)" />
+  <circle cx="820" cy="540" r="145" fill="#56d4ff" opacity="0.14" filter="url(#glow)" />
+  <rect x="76" y="70" width="62" height="62" rx="31" fill="#edf1f8" />
+  <text x="107" y="109" text-anchor="middle" fill="#0b1020" font-family="Arial, sans-serif" font-size="23" font-weight="700">LS</text>
+  <text x="160" y="96" fill="#dfe7ff" font-family="Arial, sans-serif" font-size="19" font-weight="700">ŁUKASZ SROKA TECH</text>
+  <text x="160" y="122" fill="#92a1c7" font-family="Arial, sans-serif" font-size="13" letter-spacing="2">KRAKÓW / WSPÓŁPRACA ZDALNA</text>
+  <text x="78" y="240" fill="#dce5ff" font-family="Arial, sans-serif" font-size="54" font-weight="700">Dedykowane aplikacje</text>
+  <text x="78" y="305" fill="#dce5ff" font-family="Arial, sans-serif" font-size="54" font-weight="700">webowe dla firm</text>
+  <rect x="78" y="340" width="415" height="7" rx="3.5" fill="url(#accent)" />
+  <text x="78" y="414" fill="url(#accent)" font-family="Arial, sans-serif" font-size="51" font-weight="700">Angular + .NET</text>
+  <text x="78" y="474" fill="#b8c5e7" font-family="Arial, sans-serif" font-size="21">Systemy biznesowe / integracje / rozwój produktów</text>
+  <g transform="translate(730 145)">
+    <rect width="390" height="315" rx="16" fill="#0c1129" stroke="#52618f" stroke-opacity="0.7" />
+    <path d="M0 52H390" stroke="#52618f" stroke-opacity="0.7" />
+    <circle cx="28" cy="26" r="6" fill="#ff5a82" />
+    <circle cx="49" cy="26" r="6" fill="#f2cd64" />
+    <circle cx="70" cy="26" r="6" fill="#a7f36c" />
+    <text x="196" y="30" text-anchor="middle" fill="#8d9cc2" font-family="monospace" font-size="13">solution.ts</text>
+    <text x="32" y="96" fill="#9f8cff" font-family="monospace" font-size="19">const</text>
+    <text x="97" y="96" fill="#dfe7ff" font-family="monospace" font-size="19">stack = [</text>
+    <text x="58" y="138" fill="#a7f36c" font-family="monospace" font-size="19">'Angular',</text>
+    <text x="58" y="178" fill="#a7f36c" font-family="monospace" font-size="19">'.NET',</text>
+    <text x="58" y="218" fill="#a7f36c" font-family="monospace" font-size="19">'PostgreSQL',</text>
+    <text x="58" y="258" fill="#a7f36c" font-family="monospace" font-size="19">'Python'</text>
+    <text x="32" y="290" fill="#dfe7ff" font-family="monospace" font-size="19">];</text>
+  </g>
+</svg>

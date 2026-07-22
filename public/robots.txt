@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://esakis.github.io/sitemap.xml
