@@ -67,8 +67,30 @@ describe('App', () => {
       expect(localized.heroHighlight).toBeTruthy();
       expect(localized.heroDescription).toBeTruthy();
       expect(localized.form.submit).toBeTruthy();
+      expect(localized.form.privacy).toBeTruthy();
       expect(localized.services).toHaveLength(3);
     }
+  });
+
+  it('renders a native Web3Forms POST fallback with data-processing information', () => {
+    const { fixture } = createApp();
+    const root = fixture.nativeElement as HTMLElement;
+    const form = root.querySelector<HTMLFormElement>('.contact__form');
+
+    expect(form?.action).toBe('https://api.web3forms.com/submit');
+    expect(form?.method).toBe('post');
+    expect(form?.noValidate).toBe(false);
+    expect(form?.querySelector('input[name="access_key"]')).toBeTruthy();
+    expect(form?.querySelector('input[name="from_name"]')).toBeTruthy();
+    expect(form?.querySelector('input[name="botcheck"]')?.getAttribute('type')).toBe('checkbox');
+    expect(form?.querySelector<HTMLInputElement>('input[name="name"]')?.required).toBe(true);
+    expect(form?.querySelector<HTMLInputElement>('input[name="email"]')?.required).toBe(true);
+    expect(form?.querySelector<HTMLTextAreaElement>('textarea[name="message"]')?.required).toBe(
+      true,
+    );
+    expect(root.querySelector<HTMLAnchorElement>('.contact__privacy a')?.href).toBe(
+      'https://web3forms.com/privacy',
+    );
   });
 
   it('updates the document language, title and metadata when the language changes', () => {

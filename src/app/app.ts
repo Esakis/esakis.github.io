@@ -291,6 +291,10 @@ const CONTENT = {
         'Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę lub napisz bezpośrednio na podany adres e-mail.',
       errorRequired: 'To pole jest wymagane.',
       errorEmail: 'Podaj poprawny adres e-mail.',
+      subject: 'Nowa wiadomość z portfolio',
+      privacy:
+        'Administratorem danych jest Łukasz Sroka Tech. Dane podane w formularzu (imię, adres e-mail i treść wiadomości) są przekazywane do Web3Forms wyłącznie w celu obsługi zapytania i udzielenia odpowiedzi.',
+      privacyLink: 'Polityka prywatności Web3Forms',
     },
     socialLabel: 'Zobacz także',
     footerNote: 'Aplikacje webowe tworzone z dbałością o detal.',
@@ -517,6 +521,10 @@ const CONTENT = {
         'The message could not be sent. Please try again shortly or write directly to the e-mail address provided.',
       errorRequired: 'This field is required.',
       errorEmail: 'Please enter a valid e-mail address.',
+      subject: 'New message from portfolio',
+      privacy:
+        'Łukasz Sroka Tech is the data controller. The data entered in this form (name, e-mail address, and message) is sent to Web3Forms solely to handle your enquiry and provide a response.',
+      privacyLink: 'Web3Forms privacy policy',
     },
     socialLabel: 'Also available here',
     footerNote: 'Web applications built with attention to detail.',
@@ -542,6 +550,8 @@ export class App {
   protected readonly copy = computed(() => CONTENT[this.language()]);
   protected readonly profile = PROFILE;
   protected readonly currentYear = new Date().getFullYear();
+  protected readonly web3FormsEndpoint = WEB3FORMS_ENDPOINT;
+  protected readonly web3FormsAccessKey = WEB3FORMS_ACCESS_KEY;
 
   // Stan formularza kontaktowego.
   protected readonly contactName = signal('');
@@ -694,7 +704,7 @@ export class App {
       // preflightu CORS, w przeciwieństwie do application/json.
       const formData = new FormData();
       formData.append('access_key', WEB3FORMS_ACCESS_KEY);
-      formData.append('subject', `Nowa wiadomość z portfolio — ${name}`);
+      formData.append('subject', `${this.copy().form.subject} — ${name}`);
       formData.append('from_name', PROFILE.name);
       formData.append('name', name);
       formData.append('email', email);

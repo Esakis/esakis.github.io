@@ -382,17 +382,27 @@
             <a class="contact__email" [href]="'mailto:' + profile.email">{{ profile.email }}</a>
           </div>
 
-          <form class="contact__form" (submit)="submitContact($event)" novalidate>
+          <form
+            class="contact__form"
+            [attr.action]="web3FormsEndpoint"
+            method="post"
+            (submit)="submitContact($event)"
+          >
+            <input type="hidden" name="access_key" [value]="web3FormsAccessKey" />
+            <input type="hidden" name="subject" [value]="copy().form.subject" />
+            <input type="hidden" name="from_name" [value]="profile.name" />
+
             <!-- Pułapka antyspamowa: ukryta przed ludźmi, wypełniana przez boty. -->
             <div class="contact__honeypot" aria-hidden="true">
               <label
                 >Nie wypełniaj tego pola
                 <input
-                  type="text"
+                  type="checkbox"
+                  name="botcheck"
                   tabindex="-1"
                   autocomplete="off"
-                  [value]="honeypot()"
-                  (input)="honeypot.set($any($event.target).value)"
+                  [checked]="honeypot() === 'filled'"
+                  (change)="honeypot.set($any($event.target).checked ? 'filled' : '')"
                 />
               </label>
             </div>
@@ -404,6 +414,8 @@
                 type="text"
                 name="name"
                 autocomplete="name"
+                required
+                maxlength="100"
                 [class.is-invalid]="!!formErrors().name"
                 [attr.aria-invalid]="!!formErrors().name || null"
                 [attr.aria-describedby]="formErrors().name ? 'contact-name-error' : null"
@@ -425,6 +437,8 @@
                 type="email"
                 name="email"
                 autocomplete="email"
+                required
+                maxlength="254"
                 [class.is-invalid]="!!formErrors().email"
                 [attr.aria-invalid]="!!formErrors().email || null"
                 [attr.aria-describedby]="formErrors().email ? 'contact-email-error' : null"
@@ -449,6 +463,8 @@
                 id="contact-message"
                 name="message"
                 rows="5"
+                required
+                maxlength="5000"
                 [class.is-invalid]="!!formErrors().message"
                 [attr.aria-invalid]="!!formErrors().message || null"
                 [attr.aria-describedby]="formErrors().message ? 'contact-message-error' : null"
@@ -462,6 +478,13 @@
                 </p>
               }
             </div>
+
+            <p class="contact__privacy">
+              {{ copy().form.privacy }}
+              <a href="https://web3forms.com/privacy" target="_blank" rel="noopener noreferrer">{{
+                copy().form.privacyLink
+              }}</a>
+            </p>
 
             <button
               type="submit"

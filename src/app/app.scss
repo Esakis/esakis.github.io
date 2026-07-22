@@ -1412,6 +1412,23 @@
     font-size: 0.74rem;
   }
 
+  &__privacy {
+    margin: -0.2rem 0 0;
+    color: #b3bdd8;
+    font-size: 0.72rem;
+    line-height: 1.55;
+
+    a {
+      color: var(--cyan);
+      text-underline-offset: 0.16em;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--lime);
+      }
+    }
+  }
+
   &__status {
     min-height: 1.2rem;
 
