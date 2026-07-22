@@ -1959,8 +1959,7 @@
     font-weight: 600;
   }
 
-  /* Fioletowe numerki giną w fioletowej mgławicy — większe, jaśniejsze
-     i z wyraźną jasną otoczką. */
+  /* Fioletowe numerki giną w fioletowej mgławicy — większe i jaśniejsze. */
   .principle > span,
   .process__grid span {
     color: #d4c8ff;
@@ -1971,6 +1970,17 @@
       0 0 10px rgba(240, 244, 255, 0.55),
       0 0 20px rgba(240, 244, 255, 0.3),
       0 1px 3px rgba(3, 4, 12, 0.9);
+  }
+
+  .process__grid span {
+    display: inline-block;
+    min-width: 2.8rem;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid rgba(212, 200, 255, 0.5);
+    border-radius: 0.35rem;
+    background: rgba(6, 8, 20, 0.9);
+    text-align: center;
+    text-shadow: none;
   }
 
   /* Gradientowe napisy (clip-text z przezroczystym wypełnieniem):
