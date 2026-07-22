@@ -501,7 +501,7 @@ export class SpaceBackground {
 
   /**
    * Prawdziwe modele 3D planet z NASA (GLB, domena publiczna) —
-   * Jowisz, Mars, Saturn z pierścieniami i Neptun. Każdy model jest
+   * Jowisz i Saturn z pierścieniami. Każdy model jest
    * normalizowany do zadanego promienia i oświetlany światłami sceny.
    */
   private buildPlanets(): THREE.Group {
@@ -518,14 +518,6 @@ export class SpaceBackground {
         tilt: 0.06,
         tiltX: 0,
       },
-      {
-        file: 'planets/mars.glb',
-        radius: 34,
-        pos: [-260, 205, -360],
-        speed: 0.08,
-        tilt: 0.4,
-        tiltX: 0,
-      },
       // Saturn pochylony też wokół osi X, by pierścienie odchyliły się ku
       // kamerze i były widoczne (samo pochylenie po Z daje widok krawędziowy).
       // Uwaga: planety muszą mieścić się w kuli skyboxa (promień 600 od
@@ -538,14 +530,6 @@ export class SpaceBackground {
         speed: 0.06,
         tilt: 0.2,
         tiltX: 0.6,
-      },
-      {
-        file: 'planets/neptune.glb',
-        radius: 46,
-        pos: [285, -225, -400],
-        speed: 0.07,
-        tilt: 0.5,
-        tiltX: 0,
       },
     ] as const;
 

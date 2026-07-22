@@ -11,8 +11,7 @@
 
 ## Modele 3D planet — NASA
 
-- **Pliki:** `public/planets/jupiter.glb`, `mars.glb`, `saturn.glb`,
-  `neptune.glb`
+- **Pliki:** `public/planets/jupiter.glb`, `saturn.glb`
 - **Autor:** NASA (Solar System Exploration / NASA Visualization
   Technology Applications and Development)
 - **Źródło:** solarsystem.nasa.gov (pliki glTF/GLB)
