@@ -1,0 +1,28 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1a1e24"/>
+      <stop offset="1" stop-color="#0b0d10"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="18" y1="50" x2="46" y2="14" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f3f6f9"/>
+      <stop offset="0.58" stop-color="#aeb8c2"/>
+      <stop offset="1" stop-color="#7d8894"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Zaokrąglone tło (kontener znaku) — grafit -->
+  <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="url(#bg)"/>
+  <!-- Włoskowata obwódka (styl motywu) -->
+  <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+
+  <!-- Runa Fehu: laska + dwa ramiona w górę-prawo — platyna -->
+  <g fill="none" stroke="url(#stroke)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 14V50"/>
+    <path d="M22 24 44 15"/>
+    <path d="M22 33 44 24"/>
+  </g>
+
+  <!-- Akcent: węzeł u podstawy laski — platyna rozjaśniona -->
+  <circle cx="22" cy="50" r="3.6" fill="#dfe5ea"/>
+</svg>

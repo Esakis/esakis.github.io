@@ -1,8 +1,10 @@
-# Łukasz Sroka Tech — portfolio
+# <img src="public/fehu.svg" alt="Runa Fehu" width="28" height="28" align="top"> Łukasz Sroka Tech — portfolio
 
 [![Łukasz Sroka Tech — Angular i .NET](https://esakis.github.io/og-image.png)](https://esakis.github.io/pl/)
 
 Dwujęzyczne portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe dla firm, rozwój systemów oraz integracje. Wersja polska działa pod adresem [https://esakis.github.io/pl/](https://esakis.github.io/pl/), a angielska pod [https://esakis.github.io/en/](https://esakis.github.io/en/).
+
+Znak marki w nagłówku to runa **Fehu (ᚠ)** ze Starszego Futharku (`public/fehu.svg`) — grafitowo‑platynowy medalion umieszczony po lewej stronie paska nawigacji.
 
 ## Najważniejsze funkcje
 
