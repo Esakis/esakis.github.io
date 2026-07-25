@@ -40,12 +40,12 @@ describe('App', () => {
     expect(projects).toHaveLength(2);
     expect(projects.map((project: { id: string }) => project.id)).toEqual([
       'ksiegowa-jdg',
-      'technical-reporting-system',
+      'local-pdf-editor',
     ]);
     expect(fixture.nativeElement.querySelectorAll('.project-card')).toHaveLength(2);
   });
 
-  it('only renders a live-project link when the project has a liveUrl', () => {
+  it('renders a live-project link for each project that has a liveUrl', () => {
     const { fixture } = createApp();
     const root = fixture.nativeElement as HTMLElement;
     const cards = root.querySelectorAll<HTMLElement>('.project-card');
@@ -53,8 +53,15 @@ describe('App', () => {
     expect(cards[0].querySelector<HTMLAnchorElement>('.project-card__links a')?.href).toBe(
       'https://www.ksiegowajdg.pl/',
     );
-    expect(cards[1].querySelector('.project-card__links a')).toBeNull();
-    expect(cards[1].querySelector('h3 a')).toBeNull();
+    expect(cards[0].querySelector<HTMLAnchorElement>('h3 a')?.href).toBe(
+      'https://www.ksiegowajdg.pl/',
+    );
+    expect(cards[1].querySelector<HTMLAnchorElement>('.project-card__links a')?.href).toBe(
+      'https://localpdfeditor.com/pl',
+    );
+    expect(cards[1].querySelector<HTMLAnchorElement>('h3 a')?.href).toBe(
+      'https://localpdfeditor.com/pl',
+    );
   });
 
   it('contains complete primary copy in both languages', () => {
