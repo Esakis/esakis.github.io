@@ -3,12 +3,16 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://esakis.github.io/pl/</loc>
+    <lastmod>2026-07-25</lastmod>
     <xhtml:link rel="alternate" hreflang="pl" href="https://esakis.github.io/pl/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://esakis.github.io/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://esakis.github.io/pl/" />
   </url>
   <url>
     <loc>https://esakis.github.io/en/</loc>
+    <lastmod>2026-07-25</lastmod>
     <xhtml:link rel="alternate" hreflang="pl" href="https://esakis.github.io/pl/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://esakis.github.io/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://esakis.github.io/pl/" />
   </url>
 </urlset>
