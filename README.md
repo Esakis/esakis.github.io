@@ -4,8 +4,6 @@
 
 Dwujęzyczne portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe dla firm, rozwój systemów oraz integracje. Wersja polska działa pod adresem [https://esakis.github.io/pl/](https://esakis.github.io/pl/), a angielska pod [https://esakis.github.io/en/](https://esakis.github.io/en/).
 
-Znak marki w nagłówku to runa **Fehu (ᚠ)** ze Starszego Futharku (`public/fehu.svg`) — grafitowo‑platynowy medalion umieszczony po lewej stronie paska nawigacji.
-
 ## Najważniejsze funkcje
 
 - statycznie prerenderowane wersje polska i angielska z osobnymi metadanymi SEO,
