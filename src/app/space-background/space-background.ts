@@ -19,7 +19,8 @@ interface SceneQuality {
   densityScale: number;
   skySegments: readonly [number, number];
   maxFps: number;
-  elapsedStep: number;
+  /** Tempo animacji w jednostkach czasu sceny na sekundę. */
+  timeScale: number;
   animate: boolean;
   pointerParallax: boolean;
   loadPlanets: boolean;
@@ -34,8 +35,10 @@ const SCENE_QUALITY: Record<EffectsProfile, SceneQuality> = {
     pixelRatio: 1,
     densityScale: 1,
     skySegments: [60, 40],
-    maxFps: 60,
-    elapsedStep: 0.0016,
+    // Bez limitu: render w rytmie odświeżania ekranu. Limit 60 FPS na
+    // monitorach 120–170 Hz dawał nierówny rytm klatek (szarpanie przejść).
+    maxFps: 0,
+    timeScale: 0.096,
     animate: true,
     pointerParallax: true,
     loadPlanets: true,
@@ -47,7 +50,7 @@ const SCENE_QUALITY: Record<EffectsProfile, SceneQuality> = {
     densityScale: 0.5,
     skySegments: [32, 20],
     maxFps: 30,
-    elapsedStep: 0.0032,
+    timeScale: 0.096,
     animate: true,
     pointerParallax: false,
     loadPlanets: false,
@@ -59,7 +62,7 @@ const SCENE_QUALITY: Record<EffectsProfile, SceneQuality> = {
     densityScale: 0.5,
     skySegments: [32, 20],
     maxFps: 0,
-    elapsedStep: 0,
+    timeScale: 0,
     animate: false,
     pointerParallax: false,
     loadPlanets: false,
@@ -803,22 +806,27 @@ export class SpaceBackground {
     if (this.destroyed || this.webglUnavailable || !this.isDocumentVisible) return;
     this.frameId = requestAnimationFrame(this.loop);
 
+    const sinceLastRender = this.lastRenderTime > 0 ? timestamp - this.lastRenderTime : 0;
     if (this.quality.maxFps > 0 && this.lastRenderTime > 0) {
       const frameInterval = 1000 / this.quality.maxFps;
-      const sinceLastRender = timestamp - this.lastRenderTime;
       // 1 ms tolerancji: gdy odświeżanie ekranu równa się limitowi, drgania
       // znaczników czasu nie mogą gubić co drugiej klatki.
       if (sinceLastRender < frameInterval - 1) return;
       this.lastRenderTime =
         sinceLastRender < frameInterval ? timestamp : timestamp - (sinceLastRender % frameInterval);
-      this.sampleFrameTime(sinceLastRender);
     } else {
       this.lastRenderTime = timestamp;
     }
-    this.elapsed += this.quality.elapsedStep;
+    if (sinceLastRender > 0) this.sampleFrameTime(sinceLastRender);
 
-    this.pointer.lerp(this.pointerTarget, 0.045);
-    this.scroll += (this.scrollTarget - this.scroll) * 0.06;
+    // Krok czasu zamiast stałego kroku na klatkę: ten sam ruch przy 60, 144
+    // i 170 Hz; limit 100 ms chroni przed skokiem po zawieszeniu karty.
+    const dt = Math.min(sinceLastRender || 1000 / 60, 100) / 1000;
+    this.elapsed += this.quality.timeScale * dt;
+
+    // Wygładzanie niezależne od liczby klatek (zanik wykładniczy).
+    this.pointer.lerp(this.pointerTarget, 1 - Math.exp(-dt * 2.8));
+    this.scroll += (this.scrollTarget - this.scroll) * (1 - Math.exp(-dt * 3.7));
 
     if (this.skybox) {
       // Pełny obrót 360° na całej długości strony + pochylenie w dół.
@@ -868,7 +876,7 @@ export class SpaceBackground {
 
   /** Lżejsza scena: połowa cząstek i poświaty, animacja w 30 FPS. */
   private reduceQuality(): void {
-    this.quality = { ...this.quality, maxFps: 30, elapsedStep: this.quality.elapsedStep * 2 };
+    this.quality = { ...this.quality, maxFps: 30 };
     if (!this.pillar) return;
 
     const glowMaterials = new Set<THREE.Material>();
