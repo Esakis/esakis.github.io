@@ -806,7 +806,10 @@ export class SpaceBackground {
     if (this.destroyed || this.webglUnavailable || !this.isDocumentVisible) return;
     this.frameId = requestAnimationFrame(this.loop);
 
-    const sinceLastRender = this.lastRenderTime > 0 ? timestamp - this.lastRenderTime : 0;
+    // Pierwsze wywołanie dostaje performance.now(), kolejne znacznik rAF, który
+    // bywa odrobinę wcześniejszy — stąd dolne ograniczenie do zera.
+    const sinceLastRender =
+      this.lastRenderTime > 0 ? Math.max(timestamp - this.lastRenderTime, 0) : 0;
     if (this.quality.maxFps > 0 && this.lastRenderTime > 0) {
       const frameInterval = 1000 / this.quality.maxFps;
       // 1 ms tolerancji: gdy odświeżanie ekranu równa się limitowi, drgania
