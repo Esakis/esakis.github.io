@@ -29,10 +29,12 @@ const SCENE_QUALITY: Record<EffectsProfile, SceneQuality> = {
   full: {
     antialias: true,
     powerPreference: 'high-performance',
-    pixelRatio: 2,
+    // Tło to miękka poświata i rozmyte cząstki — wyższa gęstość pikseli
+    // jest niewidoczna, a na ekranach HiDPI mnoży koszt GPU 2–4×.
+    pixelRatio: 1,
     densityScale: 1,
     skySegments: [60, 40],
-    maxFps: 0,
+    maxFps: 60,
     elapsedStep: 0.0016,
     animate: true,
     pointerParallax: true,
@@ -125,6 +127,9 @@ export class SpaceBackground {
   private resizeFrameId = 0;
   private lastRenderTime = 0;
   private quality = SCENE_QUALITY.full;
+  // Pomiar czasu klatek na starcie — słaby sprzęt przechodzi na lżejszą scenę.
+  private frameSamples: number[] = [];
+  private qualityChecked = false;
 
   constructor() {
     afterNextRender(() => {
@@ -134,7 +139,9 @@ export class SpaceBackground {
 
   private init(): void {
     const canvas = this.canvasRef().nativeElement;
-    this.quality = SCENE_QUALITY[getEffectsProfile()];
+    const profile = getEffectsProfile();
+    this.quality = SCENE_QUALITY[profile];
+    this.qualityChecked = profile !== 'full';
 
     try {
       const renderer = new THREE.WebGLRenderer({
@@ -423,10 +430,12 @@ export class SpaceBackground {
 
     // Łuna: trzy warstwy dużych, miękkich sprite'ów — ciepła złota przy osi,
     // fioletowa w środkowym pasie oraz czerwono-karmazynowa, najszersza.
+    // Każdy sprite zakrywa niemal cały ekran (overdraw), więc jest ich mało,
+    // ale są jaśniejsze — wygląd jak przy 3× większej liczbie.
     const glowLayers = [
-      { color: 0xffd9a0, opacity: 0.06, spread: 240, scale: 400, count: 26 },
-      { color: 0xb06bff, opacity: 0.055, spread: 360, scale: 520, count: 26 },
-      { color: 0xff4a3c, opacity: 0.04, spread: 470, scale: 600, count: 22 },
+      { color: 0xffd9a0, opacity: 0.18, spread: 240, scale: 400, count: 9 },
+      { color: 0xb06bff, opacity: 0.165, spread: 360, scale: 520, count: 9 },
+      { color: 0xff4a3c, opacity: 0.12, spread: 470, scale: 600, count: 7 },
     ];
     for (const layer of glowLayers) {
       const glowMaterial = new THREE.SpriteMaterial({
@@ -797,8 +806,12 @@ export class SpaceBackground {
     if (this.quality.maxFps > 0 && this.lastRenderTime > 0) {
       const frameInterval = 1000 / this.quality.maxFps;
       const sinceLastRender = timestamp - this.lastRenderTime;
-      if (sinceLastRender < frameInterval) return;
-      this.lastRenderTime = timestamp - (sinceLastRender % frameInterval);
+      // 1 ms tolerancji: gdy odświeżanie ekranu równa się limitowi, drgania
+      // znaczników czasu nie mogą gubić co drugiej klatki.
+      if (sinceLastRender < frameInterval - 1) return;
+      this.lastRenderTime =
+        sinceLastRender < frameInterval ? timestamp : timestamp - (sinceLastRender % frameInterval);
+      this.sampleFrameTime(sinceLastRender);
     } else {
       this.lastRenderTime = timestamp;
     }
@@ -837,6 +850,41 @@ export class SpaceBackground {
 
     this.renderFrame();
   };
+
+  /**
+   * Zbiera czasy klatek z pierwszych sekund animacji. Jeśli mediana wskazuje
+   * na słaby GPU (poniżej ~35 FPS), scena przechodzi w lżejszy tryb.
+   */
+  private sampleFrameTime(frameTime: number): void {
+    if (this.qualityChecked) return;
+    this.frameSamples.push(frameTime);
+    // Pierwsze klatki pomijamy — wysyłanie tekstur do GPU zawyża ich czas.
+    if (this.frameSamples.length < 100) return;
+    this.qualityChecked = true;
+    const samples = this.frameSamples.slice(20).sort((a, b) => a - b);
+    this.frameSamples = [];
+    if (samples[Math.floor(samples.length / 2)] > 28) this.reduceQuality();
+  }
+
+  /** Lżejsza scena: połowa cząstek i poświaty, animacja w 30 FPS. */
+  private reduceQuality(): void {
+    this.quality = { ...this.quality, maxFps: 30, elapsedStep: this.quality.elapsedStep * 2 };
+    if (!this.pillar) return;
+
+    const glowMaterials = new Set<THREE.Material>();
+    let spriteIndex = 0;
+    for (const child of this.pillar.children) {
+      if (child instanceof THREE.Points) {
+        const count = child.geometry.getAttribute('position').count;
+        child.geometry.setDrawRange(0, Math.ceil(count / 2));
+      } else if (child instanceof THREE.Sprite) {
+        child.visible = spriteIndex++ % 2 === 0;
+        glowMaterials.add(child.material);
+      }
+    }
+    // Jaśniejsze pozostałe sprite'y zachowują natężenie łuny.
+    for (const material of glowMaterials) material.opacity *= 2;
+  }
 
   private renderFrame(): void {
     if (this.renderer && this.scene && this.camera) {
