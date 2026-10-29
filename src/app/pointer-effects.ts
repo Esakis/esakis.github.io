@@ -1,5 +1,20 @@
 import { isPlatformBrowser } from '@angular/common';
-import { afterNextRender, DestroyRef, Directive, ElementRef, inject, PLATFORM_ID } from '@angular/core';
+import {
+  afterNextRender,
+  DestroyRef,
+  Directive,
+  ElementRef,
+  inject,
+  input,
+  PLATFORM_ID,
+} from '@angular/core';
+
+/** Podpisy pierścienia kursora w języku strony. */
+export interface CursorLabels {
+  readonly open: string;
+  readonly write: string;
+  readonly scroll: string;
+}
 
 /** Elementy, nad którymi pierścień kursora się powiększa. */
 const INTERACTIVE = 'a, button, input, textarea, select, label';
@@ -11,8 +26,10 @@ const MAGNET_RADIUS = 28;
 const TILT = 5;
 
 /**
- * Mikrointerakcje kursora: pierścień podążający z płynnym opóźnieniem,
- * magnetyczne przyciski i przechylanie kart projektów w 3D z odblaskiem.
+ * Mikrointerakcje kursora: pierścień podążający z płynnym opóźnieniem i z
+ * podpisem zależnym od miejsca („Otwórz" nad projektem, „Napisz" nad polem
+ * formularza, „Przewiń" w hero), magnetyczne przyciski oraz przechylanie kart
+ * projektów w 3D z odblaskiem i paralaksą ramki laptopa.
  *
  * Trafienia liczone są geometrycznie (getBoundingClientRect), a nie przez
  * `event.target`: w helisie 3D zdarzenia trafiają w viewport zamiast w
@@ -23,6 +40,8 @@ const TILT = 5;
   selector: '[appPointerEffects]',
 })
 export class PointerEffects {
+  readonly cursorLabels = input<CursorLabels>({ open: '', write: '', scroll: '' });
+
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
@@ -36,6 +55,7 @@ export class PointerEffects {
   private frameId = 0;
   private magnet?: HTMLElement;
   private tilted?: HTMLElement;
+  private lastScope?: HTMLElement;
 
   constructor() {
     afterNextRender(() => {
@@ -49,7 +69,8 @@ export class PointerEffects {
 
   private init(): void {
     const ring = this.host.nativeElement;
-    ring.classList.add('is-enabled');
+    // Ukryty do pierwszego ruchu myszy — inaczej stałby w lewym górnym rogu.
+    ring.classList.add('is-enabled', 'is-idle');
 
     const onMove = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
@@ -89,15 +110,38 @@ export class PointerEffects {
     const ring = this.host.nativeElement;
     ring.style.transform = `translate3d(${this.ringX.toFixed(1)}px, ${this.ringY.toFixed(1)}px, 0)`;
 
-    // Trafienia liczymy tylko, gdy kursor się rusza — w spoczynku pętla jest prawie darmowa.
-    if (now - this.lastMove > 120) return;
-    ring.classList.remove('is-idle');
+    // Trafienia liczymy, gdy kursor się rusza albo zmieniła się aktywna karta
+    // (przewijanie kółkiem bez ruchu myszy) — w spoczynku pętla jest prawie darmowa.
     const scope = document.querySelector<HTMLElement>('.helix-panel.is-active') ?? document.body;
-    ring.classList.toggle('is-hover', this.hit(document.querySelectorAll(`.site-header :is(${INTERACTIVE})`), 0) !== undefined
-      || this.hit(scope.querySelectorAll(INTERACTIVE), 0) !== undefined);
+    if (now - this.lastMove > 120 && scope === this.lastScope) return;
+    this.lastScope = scope;
+    if (now - this.lastMove <= 120) ring.classList.remove('is-idle');
+    const overHeader = this.hit(document.querySelectorAll(`.site-header :is(${INTERACTIVE})`), 0);
+    const interactive = overHeader ?? this.hit(scope.querySelectorAll(INTERACTIVE), 0);
+    const card = this.hit(scope.querySelectorAll('.project-card'), 0);
     this.updateMagnet(this.hit(scope.querySelectorAll(MAGNETIC), MAGNET_RADIUS));
-    this.updateTilt(this.hit(scope.querySelectorAll('.project-card'), 0));
+    this.updateTilt(card);
+    this.updateLabel(interactive, card, scope);
   };
+
+  /** Podpis w pierścieniu: kontekst ważniejszy niż samo powiększenie nad linkiem. */
+  private updateLabel(
+    interactive: HTMLElement | undefined,
+    card: HTMLElement | undefined,
+    scope: HTMLElement,
+  ): void {
+    const labels = this.cursorLabels();
+    let label = '';
+    if (interactive?.matches('input, textarea')) label = labels.write;
+    else if (card && !interactive) label = labels.open;
+    else if (!interactive && scope.classList.contains('hero')) label = labels.scroll;
+
+    const ring = this.host.nativeElement;
+    const text = ring.querySelector<HTMLElement>('.cursor-ring__label');
+    if (text && label) text.textContent = label;
+    ring.classList.toggle('is-label', label !== '');
+    ring.classList.toggle('is-hover', label === '' && interactive !== undefined);
+  }
 
   /** Pierwszy element, którego prostokąt (powiększony o `padding`) zawiera kursor. */
   private hit(elements: NodeListOf<HTMLElement>, padding: number): HTMLElement | undefined {
@@ -142,11 +186,14 @@ export class PointerEffects {
     target.style.setProperty('--glare-x', `${(x * 100).toFixed(1)}%`);
     target.style.setProperty('--glare-y', `${(y * 100).toFixed(1)}%`);
     target.style.setProperty('--glare', '0.07');
+    // Paralaksa ramki laptopa ze zrzutem (motion.scss).
+    target.style.setProperty('--px', (x - 0.5).toFixed(3));
+    target.style.setProperty('--py', (y - 0.5).toFixed(3));
   }
 
   private releaseTilt(): void {
     if (!this.tilted) return;
-    for (const name of ['--tilt-x', '--tilt-y', '--glare-x', '--glare-y', '--glare']) {
+    for (const name of ['--tilt-x', '--tilt-y', '--glare-x', '--glare-y', '--glare', '--px', '--py']) {
       this.tilted.style.removeProperty(name);
     }
     this.tilted = undefined;

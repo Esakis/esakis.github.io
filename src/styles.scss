@@ -37,15 +37,30 @@ body {
   min-width: 320px;
   margin: 0;
   overflow-x: clip;
-  background:
-    radial-gradient(ellipse 80% 60% at 75% -10%, rgba(70, 100, 160, 0.16), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 15% 110%, rgba(60, 130, 190, 0.1), transparent 60%), #05060f;
-  background-attachment: fixed;
+  background: #04060d;
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-user-select: none;
+
+  /* Statyczne tło całej aplikacji — „zorza": miękkie, rozmyte światła
+     (błękit w prawym górnym rogu, morski turkus w lewym dolnym, śladowy ciepły
+     akcent) i delikatne ziarno filmowe. Stała warstwa pod sceną WebGL
+     (position: fixed zamiast background-attachment — działa też na telefonach). */
+  &::before {
+    position: fixed;
+    z-index: -2;
+    inset: 0;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
+      radial-gradient(60% 55% at 88% 6%, rgba(58, 100, 190, 0.38), transparent 70%),
+      radial-gradient(55% 50% at 6% 96%, rgba(36, 138, 150, 0.26), transparent 70%),
+      radial-gradient(38% 34% at 58% 58%, rgba(210, 160, 95, 0.07), transparent 70%),
+      #04060d;
+    pointer-events: none;
+    content: '';
+  }
 }
 
 button,
@@ -71,12 +86,6 @@ button {
   outline-offset: 4px;
 }
 
-@media (max-width: 1000px) {
-  body {
-    background-attachment: scroll;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -90,4 +99,12 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Licznik intra marki (0 → 100 %) animowany w CSS — typowana właściwość musi
+   być zarejestrowana globalnie, żeby przeglądarka mogła ją interpolować. */
+@property --intro-count {
+  syntax: '<integer>';
+  initial-value: 0;
+  inherits: false;
 }

@@ -116,6 +116,32 @@ const STOPS: ReadonlyArray<{
 
 /** Czas uruchamiania systemu przy wejściu na stronę (s). */
 const BOOT_SECONDS = 3;
+
+/**
+ * Zorza w tle sceny — te same światła co tło CSS strony (styles.scss,
+ * body::before), żeby przejście między wersją WebGL i awaryjną było niewidoczne.
+ */
+const AURORA_FRAGMENT = /* glsl */ `
+  uniform vec2 uResolution;
+
+  // Radialny gradient jak w CSS: kolor w środku, przezroczystość na 70% promienia.
+  vec3 layer(vec3 base, vec2 uv, vec2 center, vec2 radii, vec3 color, float alpha) {
+    float d = length((uv - center) / radii);
+    return mix(base, color, alpha * max(0.0, 1.0 - d / 0.7));
+  }
+
+  void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    uv.y = 1.0 - uv.y;
+    vec3 color = vec3(4.0, 6.0, 13.0) / 255.0;
+    color = layer(color, uv, vec2(0.58, 0.58), vec2(0.38, 0.34), vec3(210.0, 160.0, 95.0) / 255.0, 0.07);
+    color = layer(color, uv, vec2(0.06, 0.96), vec2(0.55, 0.50), vec3(36.0, 138.0, 150.0) / 255.0, 0.26);
+    color = layer(color, uv, vec2(0.88, 0.06), vec2(0.60, 0.55), vec3(58.0, 100.0, 190.0) / 255.0, 0.38);
+    // Delikatne, statyczne ziarno filmowe.
+    float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    gl_FragColor = vec4(color + (grain - 0.5) * 0.035, 1.0);
+  }
+`;
 /** Co ile sekund powtarzać impuls zapytania, gdy użytkownik stoi na karcie. */
 const TRACE_INTERVAL = 5.5;
 
@@ -205,10 +231,17 @@ export class SpaceBackground {
   private scene?: THREE.Scene;
   private camera?: THREE.PerspectiveCamera;
   private graph?: SystemGraph;
+  private auroraMaterial?: THREE.ShaderMaterial;
   private cameraPath?: THREE.CatmullRomCurve3;
   private focusPath?: THREE.CatmullRomCurve3;
   private readonly focus = new THREE.Vector3();
   private readonly projected = new THREE.Vector3();
+  // Kursor jako węzeł systemu: promień z kamery przez kursor i jego punkt w scenie.
+  private readonly raycaster = new THREE.Raycaster();
+  private readonly cursorPlane = new THREE.Plane();
+  private readonly cursorNdc = new THREE.Vector2();
+  private readonly cursorPoint = new THREE.Vector3();
+  private lastPointerMove = -Infinity;
   private readonly emphasis = CLUSTERS.map(() => 0.6);
   private frameId = 0;
   private disposables: Array<{ dispose: () => void }> = [];
@@ -257,6 +290,8 @@ export class SpaceBackground {
       const renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: this.quality.antialias,
+        // Nieprzezroczysty canvas: zorzę rysuje scena (createAurora), więc
+        // przeglądarka nie musi co klatkę mieszać canvasu z tłem strony.
         alpha: false,
         powerPreference: this.quality.powerPreference,
       });
@@ -267,7 +302,7 @@ export class SpaceBackground {
       this.camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 1, 2000);
       this.graph = new SystemGraph();
       this.disposables.push(this.graph);
-      this.scene.add(this.graph.object);
+      this.scene.add(this.createAurora(), this.graph.object);
 
       this.cameraPath = new THREE.CatmullRomCurve3(
         STOPS.map((stop) => stop.focus.clone().add(stop.offset)),
@@ -292,6 +327,23 @@ export class SpaceBackground {
     } catch {
       this.disableWebgl();
     }
+  }
+
+  /** Pełnoekranowa zorza rysowana pierwsza, pod siecią systemu. */
+  private createAurora(): THREE.Mesh {
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    this.auroraMaterial = new THREE.ShaderMaterial({
+      vertexShader: 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: AURORA_FRAGMENT,
+      uniforms: { uResolution: { value: new THREE.Vector2(1, 1) } },
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.disposables.push(geometry, this.auroraMaterial);
+    const aurora = new THREE.Mesh(geometry, this.auroraMaterial);
+    aurora.frustumCulled = false;
+    aurora.renderOrder = -10;
+    return aurora;
   }
 
   /** Pierwsza klatka i pętla animacji — dopiero po skompilowaniu shaderów. */
@@ -354,6 +406,7 @@ export class SpaceBackground {
           (event.clientX / window.innerWidth - 0.5) * 2,
           (event.clientY / window.innerHeight - 0.5) * 2,
         );
+        this.lastPointerMove = this.elapsed;
       };
       window.addEventListener('pointermove', onPointerMove, { passive: true });
       this.cleanupFns.push(() => window.removeEventListener('pointermove', onPointerMove));
@@ -397,6 +450,7 @@ export class SpaceBackground {
     this.camera.updateProjectionMatrix();
     this.graph?.setPixelRatio(pixelRatio);
     this.graph?.setViewport(height, CAMERA_FOV);
+    this.auroraMaterial?.uniforms['uResolution'].value.set(width * pixelRatio, height * pixelRatio);
   }
 
   private loop = (now = performance.now()): void => {
@@ -493,8 +547,30 @@ export class SpaceBackground {
     }
     this.camera.updateMatrixWorld();
     // Przy helisie etykieta tylko dla warstwy w marginesie — za kartą zaśmiecałaby treść.
-    this.updateLabels(this.helixActive ? Math.max(margin, 0) : 1);
+    // W układzie płaskim (telefony) etykiety warstw tylko zaśmiecałyby treść.
+    this.updateLabels(this.helixActive ? Math.max(margin, 0) : 0);
     this.updateTraceLabel();
+    this.updateCursorNode();
+  }
+
+  /**
+   * Kursor staje się węzłem systemu na płaszczyźnie przechodzącej przez punkt
+   * skupienia kamery; efekt gaśnie ~2 s po ostatnim ruchu myszy.
+   */
+  private updateCursorNode(): void {
+    if (!this.graph || !this.camera || !this.quality.pointerParallax) return;
+    const strength = 1 - THREE.MathUtils.smoothstep(this.elapsed - this.lastPointerMove, 1.5, 2.5);
+    if (strength <= 0) {
+      this.graph.setCursor(this.cursorPoint, 0);
+      return;
+    }
+    // pointerTarget: x w prawo, y w dół (−1…1) → NDC ma oś y w górę.
+    this.cursorNdc.set(this.pointerTarget.x, -this.pointerTarget.y);
+    this.raycaster.setFromCamera(this.cursorNdc, this.camera);
+    const normal = this.camera.getWorldDirection(new THREE.Vector3());
+    this.cursorPlane.setFromNormalAndCoplanarPoint(normal, this.focus);
+    if (!this.raycaster.ray.intersectPlane(this.cursorPlane, this.cursorPoint)) return;
+    this.graph.setCursor(this.cursorPoint, strength);
   }
 
   /**

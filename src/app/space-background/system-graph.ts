@@ -38,6 +38,9 @@ const CURVE_SEGMENTS = 56;
 const TRACE_TRAIL_POINTS = 28;
 /** Czas przelotu impulsu zapytania przez jeden odcinek trasy (s). */
 const TRACE_SEGMENT_SECONDS = 0.55;
+/** Ile najbliższych węzłów łączy się z kursorem i w jakim promieniu (jednostki sceny). */
+const CURSOR_LINKS = 6;
+const CURSOR_RADIUS = 34;
 
 const NODE_VERTEX = /* glsl */ `
   attribute float aSize;
@@ -49,13 +52,17 @@ const NODE_VERTEX = /* glsl */ `
   uniform float uBoot;
   uniform float uScale;
   uniform float uPixelRatio;
+  uniform vec3 uCursor;
+  uniform float uCursorStrength;
   varying float vEmphasis;
   varying float vCore;
   varying float vAppear;
 
   void main() {
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    float emphasis = uEmphasis[int(aCluster + 0.5)];
+    // Węzły blisko kursora rozświetlają się — kursor jest „węzłem" systemu.
+    float near = (1.0 - smoothstep(4.0, 28.0, distance(position, uCursor))) * uCursorStrength;
+    float emphasis = max(uEmphasis[int(aCluster + 0.5)], near);
     // Uruchomienie systemu: węzeł „zapala się" z krótkim przeskalowaniem.
     float appear = smoothstep(aBoot, aBoot + 0.06, uBoot);
     float pop = 1.0 + 0.6 * appear * (1.0 - smoothstep(aBoot + 0.06, aBoot + 0.16, uBoot));
@@ -208,6 +215,17 @@ const TRACE_VERTEX = /* glsl */ `
   }
 `;
 
+const TRACE_HEAD_FRAGMENT = /* glsl */ `
+  uniform vec3 uColor;
+  varying float vAlpha;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    float alpha = (exp(-d * d * 10.0) + smoothstep(0.14, 0.06, d)) * vAlpha;
+    if (alpha < 0.01) discard;
+    gl_FragColor = vec4(uColor, alpha);
+  }
+`;
+
 const TRACE_LINE_FRAGMENT = /* glsl */ `
   uniform vec3 uColor;
   varying float vAlpha;
@@ -275,11 +293,21 @@ export class SystemGraph {
   private traceStart = -1;
   private traceVisible = 0;
 
+  // Kursor jako węzeł: rozświetla pobliskie węzły i łączy się z najbliższymi.
+  private readonly cursor = { uCursor: { value: new THREE.Vector3() }, uCursorStrength: { value: 0 } };
+  private readonly nodePositions: THREE.Vector3[] = [];
+  private readonly cursorLinkPositions = new Float32Array(CURSOR_LINKS * 6);
+  private readonly cursorLinks: THREE.LineSegments;
+  private readonly cursorPoint: THREE.Points;
+
   constructor() {
     EDGES.forEach(([from, to]) => this.edgeCurves.set(`${from}-${to}`, this.edgeCurve(from, to, 0)));
     const trace = this.buildTrace();
     this.traceTrail = trace.trail;
     this.traceHead = trace.head;
+    const cursor = this.buildCursor();
+    this.cursorLinks = cursor.links;
+    this.cursorPoint = cursor.point;
     this.object.add(
       this.buildGrid(),
       this.buildLinks(),
@@ -287,7 +315,38 @@ export class SystemGraph {
       this.buildNodes(),
       this.traceTrail,
       this.traceHead,
+      this.cursorLinks,
+      this.cursorPoint,
     );
+  }
+
+  /**
+   * Pozycja kursora w świecie sceny i siła efektu (0–1, gaśnie, gdy mysz stoi).
+   * Łączy kursor liniami z kilkoma najbliższymi węzłami.
+   */
+  setCursor(point: THREE.Vector3, strength: number): void {
+    this.cursor.uCursor.value.copy(point);
+    this.cursor.uCursorStrength.value = strength;
+    const visible = strength > 0.01;
+    this.cursorLinks.visible = this.cursorPoint.visible = visible;
+    if (!visible) return;
+
+    const nearest = this.nodePositions
+      .map((node) => ({ node, distance: node.distanceToSquared(point) }))
+      .filter((entry) => entry.distance < CURSOR_RADIUS * CURSOR_RADIUS)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, CURSOR_LINKS);
+    for (let i = 0; i < CURSOR_LINKS; i++) {
+      // Nieużyte połączenia zwijają się do punktu kursora (zerowa długość).
+      const target = nearest[i]?.node ?? point;
+      this.cursorLinkPositions.set([...point.toArray(), ...target.toArray()], i * 6);
+    }
+    this.cursorLinks.geometry.getAttribute('position').needsUpdate = true;
+    this.cursorPoint.geometry.getAttribute('position').setXYZ(0, point.x, point.y, point.z);
+    this.cursorPoint.geometry.getAttribute('position').needsUpdate = true;
+    for (const object of [this.cursorLinks, this.cursorPoint]) {
+      (object.material as THREE.ShaderMaterial).uniforms['uOpacity'].value = strength;
+    }
   }
 
   setPixelRatio(pixelRatio: number): void {
@@ -383,7 +442,8 @@ export class SystemGraph {
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
-      uniforms: { uEmphasis: { value: this.emphasis }, ...uniforms },
+      // Wspólne obiekty uniformów: jasność warstw i pozycja kursora.
+      uniforms: { uEmphasis: { value: this.emphasis }, ...this.cursor, ...uniforms },
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -414,6 +474,7 @@ export class SystemGraph {
     const cores: number[] = [];
     const boots: number[] = [];
     const add = (point: THREE.Vector3, size: number, cluster: number, core: number, boot: number) => {
+      this.nodePositions.push(point);
       positions.push(...point.toArray());
       sizes.push(size);
       clusters.push(cluster);
@@ -591,19 +652,49 @@ export class SystemGraph {
       uSize: { value: 16 },
     });
     const trail = new THREE.Line(trailGeometry, this.createMaterial(TRACE_VERTEX, TRACE_LINE_FRAGMENT, uniforms()));
-    const head = new THREE.Points(headGeometry, this.createMaterial(TRACE_VERTEX, `
-      uniform vec3 uColor;
-      varying float vAlpha;
-      void main() {
-        float d = length(gl_PointCoord - 0.5);
-        float alpha = (exp(-d * d * 10.0) + smoothstep(0.14, 0.06, d)) * vAlpha;
-        if (alpha < 0.01) discard;
-        gl_FragColor = vec4(uColor, alpha);
-      }
-    `, uniforms()));
+    const head = new THREE.Points(
+      headGeometry,
+      this.createMaterial(TRACE_VERTEX, TRACE_HEAD_FRAGMENT, uniforms()),
+    );
     trail.frustumCulled = head.frustumCulled = false;
     trail.visible = head.visible = false;
     return { trail, head };
+  }
+
+  /** Linie od kursora do najbliższych węzłów i świecący punkt kursora. */
+  private buildCursor(): { links: THREE.LineSegments; point: THREE.Points } {
+    const linkGeometry = new THREE.BufferGeometry();
+    linkGeometry.setAttribute('position', new THREE.BufferAttribute(this.cursorLinkPositions, 3));
+    // Jaśniej przy kursorze, ciemniej przy węźle.
+    linkGeometry.setAttribute(
+      'aFade',
+      new THREE.Float32BufferAttribute(
+        Array.from({ length: CURSOR_LINKS * 2 }, (_, i) => (i % 2 === 0 ? 0.9 : 0.35)),
+        1,
+      ),
+    );
+    const pointGeometry = new THREE.BufferGeometry();
+    pointGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3));
+    pointGeometry.setAttribute('aFade', new THREE.Float32BufferAttribute([0.8], 1));
+    this.disposables.push(linkGeometry, pointGeometry);
+
+    const uniforms = () => ({
+      uColor: { value: CYAN },
+      uOpacity: { value: 0 },
+      uPixelRatio: { value: 1 },
+      uSize: { value: 11 },
+    });
+    const links = new THREE.LineSegments(
+      linkGeometry,
+      this.createMaterial(TRACE_VERTEX, TRACE_LINE_FRAGMENT, uniforms()),
+    );
+    const point = new THREE.Points(
+      pointGeometry,
+      this.createMaterial(TRACE_VERTEX, TRACE_HEAD_FRAGMENT, uniforms()),
+    );
+    links.frustumCulled = point.frustumCulled = false;
+    links.visible = point.visible = false;
+    return { links, point };
   }
 
   private buildGrid(): THREE.Mesh {

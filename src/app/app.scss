@@ -206,17 +206,14 @@
     letter-spacing: -0.065em;
     text-shadow: 0 3px 24px rgba(5, 6, 15, 0.9);
 
-    span {
+    /* Druga, wyróżniona linia — jednolity kolor (gradient clip-text znikałby
+       podczas animacji słów, które dostają własne warstwy transformacji). */
+    .heading-line {
       display: block;
-      /* Zapas na dolne wydłużenia liter (j, g, p, y): przy line-height < 1
-         tło clip-text kończy się nad nimi i litery wyglądają na ucięte. */
-      padding-bottom: 0.18em;
-      margin-bottom: -0.18em;
-      background: linear-gradient(100deg, #eef2fa 0%, #9db4d8 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
+
+      &--accent {
+        color: #a9bfe3;
+      }
     }
   }
 
@@ -1289,16 +1286,13 @@
     line-height: 0.98;
     letter-spacing: -0.065em;
 
-    span {
+    /* Wyróżniona linia — jednolity kolor, jak w hero. */
+    .heading-line {
       display: block;
-      /* Zapas na dolne wydłużenia liter — jak w hero. */
-      padding-bottom: 0.18em;
-      margin-bottom: -0.18em;
-      background: linear-gradient(100deg, #eef2fa, #9db4d8);
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
+
+      &--accent {
+        color: #a9bfe3;
+      }
     }
   }
 
@@ -2026,15 +2020,6 @@
       0 0 10px rgba(240, 244, 255, 0.55),
       0 0 20px rgba(240, 244, 255, 0.3),
       0 1px 3px rgba(3, 4, 12, 0.9);
-  }
-
-  /* Gradientowe napisy (clip-text z przezroczystym wypełnieniem):
-     text-shadow rysuje się NAD gradientem i zamienia litery w ciemną
-     sylwetkę — zamiast niego cień z filtra, liczony z widocznych pikseli. */
-  .hero h1 span,
-  .contact h2 span {
-    text-shadow: none;
-    filter: drop-shadow(0 2px 3px rgba(3, 4, 12, 0.95)) drop-shadow(0 0 12px rgba(3, 4, 12, 0.8));
   }
 
   /* Przyciski z jasnym gradientowym tłem i ciemnym tekstem — bez poświaty. */

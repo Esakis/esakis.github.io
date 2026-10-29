@@ -12,6 +12,8 @@ import { RouterOutlet } from '@angular/router';
 import { SpaceBackground } from './space-background/space-background';
 import { HelixScroll } from './helix-scroll';
 import { PointerEffects } from './pointer-effects';
+import { ScrambleText } from './scramble-text';
+import { WordsPipe } from './words.pipe';
 
 type Language = 'pl' | 'en';
 type FormState = 'idle' | 'sending' | 'success' | 'error';
@@ -101,6 +103,7 @@ const CONTENT = {
     terminalFocus: ['Angular', '.NET', 'SQL'],
     terminalStatus: 'otwarty na nowe projekty',
     scrollLabel: 'Przewiń, aby poznać ofertę',
+    cursorLabels: { open: 'Otwórz', write: 'Napisz', scroll: 'Przewiń' },
     systemNodes: [
       'Aplikacja webowa',
       'API',
@@ -361,6 +364,7 @@ const CONTENT = {
     terminalFocus: ['Angular', '.NET', 'SQL'],
     terminalStatus: 'available for new projects',
     scrollLabel: 'Scroll to explore the offer',
+    cursorLabels: { open: 'Open', write: 'Write', scroll: 'Scroll' },
     systemNodes: ['Web app', 'API', 'Database', 'Event queue', 'Integrations', 'Cloud'],
     statisticsLabel: 'Key company information',
     stats: [
@@ -583,7 +587,7 @@ const CONTENT = {
 
 @Component({
   selector: 'app-root',
-  imports: [SpaceBackground, HelixScroll, PointerEffects, RouterOutlet],
+  imports: [SpaceBackground, HelixScroll, PointerEffects, ScrambleText, WordsPipe, RouterOutlet],
   templateUrl: './app.html',
   styleUrls: ['./app.scss', './motion.scss'],
 })
@@ -616,11 +620,42 @@ export class App {
     this.applyLanguage(this.language());
     afterNextRender(() => {
       if (!isPlatformBrowser(this.platformId)) return;
+      this.rememberIntroSeen();
+      this.predecodeProjectScreenshots();
       this.trackMobileServiceTimeline();
       if (this.isStaticLanguagePath()) return;
       const savedLanguage = this.readSavedLanguage();
       if (savedLanguage) this.setLanguage(savedLanguage);
     });
+  }
+
+  /** Intro marki pokazuje się raz na sesję — kolejne wejścia (np. zmiana języka) bez niego. */
+  private rememberIntroSeen(): void {
+    try {
+      sessionStorage.setItem('intro-seen', '1');
+    } catch {
+      // Brak dostępu do sessionStorage (tryb prywatny) — intro zagra przy każdym wejściu.
+    }
+  }
+
+  /**
+   * Zrzuty projektów (`loading="lazy"`) w helisie ładowały i dekodowały się
+   * dopiero przy pierwszym pokazaniu karty — przycięcie przejścia na słabym GPU.
+   * W bezczynności po starcie pobieramy je i dekodujemy z wyprzedzeniem.
+   */
+  private predecodeProjectScreenshots(): void {
+    const run = () => {
+      for (const image of this.document.querySelectorAll<HTMLImageElement>(
+        '.project-card__screenshots img',
+      )) {
+        image.loading = 'eager';
+        image.decode().catch(() => undefined);
+      }
+    };
+    const idle = (window as Window & { requestIdleCallback?: (callback: () => void) => number })
+      .requestIdleCallback;
+    if (idle) idle(run);
+    else setTimeout(run, 2000);
   }
 
   private trackMobileServiceTimeline(): void {

@@ -2,21 +2,147 @@
    (klasa `is-active` z helisy lub — w układzie płaskim — z IntersectionObserver).
    `animation-fill-mode: backwards` trzyma stan początkowy tylko na czas
    opóźnienia; po animacji element wraca do swoich zwykłych stylów (hover itp.).
+   `--intro-delay` przesuwa sekwencję hero za intro marki przy pierwszej wizycie.
    `prefers-reduced-motion` skraca wszystkie animacje globalnie (styles.scss). */
 
 $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
 
 @mixin enter($name, $delay: 0ms, $duration: 900ms) {
-  animation: $name $duration $delay $ease-out backwards;
+  animation: $name $duration calc(var(--intro-delay, 0s) + #{$delay}) $ease-out backwards;
 }
 
 /* Kaskada: kolejne elementy listy wchodzą z rosnącym opóźnieniem. */
 @mixin stagger($start, $step: 70ms, $count: 12) {
   @for $i from 1 through $count {
     &:nth-child(#{$i}) {
-      animation-delay: $start + ($i - 1) * $step;
+      animation-delay: calc(var(--intro-delay, 0s) + #{$start + ($i - 1) * $step});
     }
   }
+}
+
+/* --- Intro marki (tylko pierwsza wizyta w sesji) ----------------------- */
+
+.hero {
+  --intro-delay: 1.75s;
+}
+
+:host-context(.intro-seen) .hero {
+  --intro-delay: 0s;
+}
+
+.intro {
+  position: fixed;
+  z-index: 300;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1.6rem;
+  background: #04060d;
+  animation: intro-curtain 900ms 1.35s $ease-in-out forwards;
+
+  &__mark {
+    animation: intro-mark 900ms 100ms $ease-out backwards;
+
+    img {
+      display: block;
+      width: 64px;
+      height: 64px;
+    }
+  }
+
+  /* Licznik 0→100 % liczony w CSS (animowana właściwość @property --intro-count). */
+  &__counter {
+    color: #cfdcf2;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
+    animation: intro-count 1.2s 100ms $ease-in-out both;
+    counter-reset: intro var(--intro-count);
+
+    &::after {
+      content: counter(intro) ' %';
+    }
+  }
+
+  &__bar {
+    width: 160px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.14);
+
+    &::after {
+      display: block;
+      height: 100%;
+      background: #f3f5fa;
+      transform-origin: left;
+      animation: intro-bar 1.2s 100ms $ease-in-out both;
+      content: '';
+    }
+  }
+}
+
+:host-context(.intro-seen) .intro {
+  display: none;
+}
+
+@keyframes intro-curtain {
+  to {
+    visibility: hidden;
+    transform: translate3d(0, -100%, 0);
+  }
+}
+
+@keyframes intro-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+    clip-path: inset(100% 0 0 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0);
+  }
+}
+
+@keyframes intro-count {
+  from {
+    --intro-count: 0;
+  }
+
+  to {
+    --intro-count: 100;
+  }
+}
+
+@keyframes intro-bar {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* --- Sekwencje wejścia treści kart ------------------------------------ */
+
+/* Słowa nagłówków w maskach: każde wyjeżdża osobno, z kaskadą (--i z szablonu). */
+.word {
+  display: inline-block;
+  overflow: hidden;
+  /* Maska przycinałaby cień tekstu (układ płaski) w ciemne prostokąty. */
+  text-shadow: none;
+  /* Zapas na dolne wydłużenia liter (j, g, p, y) wewnątrz maski. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: top;
+}
+
+.word__inner {
+  display: inline-block;
 }
 
 .helix-panel.is-active {
@@ -27,23 +153,18 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     @include enter(motion-up, 0ms, 800ms);
   }
 
-  /* Nagłówki wyjeżdżają spod maski, druga linia z opóźnieniem. */
-  h1,
-  h2 {
-    @include enter(motion-mask, 90ms, 1100ms);
-  }
-
-  h1 span,
-  h2 span {
-    @include enter(motion-mask, 230ms, 1100ms);
+  .word__inner {
+    animation: motion-word 1000ms calc(var(--intro-delay, 0s) + 80ms + var(--i, 0) * 55ms) $ease-out
+      backwards;
   }
 
   .hero__description,
   .about__copy p,
   .section-heading p:not(.section-kicker),
   .services__note,
+  .contact__text,
   .hero__note {
-    @include enter(motion-up, 300ms);
+    @include enter(motion-up, 380ms);
   }
 
   .hero__actions > *,
@@ -52,11 +173,10 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   .timeline-item,
   .process__grid > *,
   .contact__field {
-    @include enter(motion-up, 400ms);
-    @include stagger(400ms, 90ms, 6);
+    @include enter(motion-up, 460ms);
+    @include stagger(460ms, 90ms, 6);
   }
 
-  .skills-list > span,
   .project-card__tags > * {
     @include enter(motion-pop, 600ms, 600ms);
     @include stagger(600ms, 45ms, 14);
@@ -65,10 +185,6 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   /* Zrzuty projektów: odsłonięcie „cięciem" z lekkim oddaleniem. */
   .project-card__visual {
     @include enter(motion-wipe, 250ms, 1200ms);
-
-    img {
-      @include enter(motion-zoom, 250ms, 1600ms);
-    }
   }
 
   .project-card__content > * {
@@ -84,18 +200,9 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
-@keyframes motion-mask {
+@keyframes motion-word {
   from {
-    opacity: 0;
-    transform: translate3d(0, 0.45em, 0);
-    clip-path: inset(0 0 100% 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-    /* Ujemny dół: nie ucina dolnych wydłużeń liter (j, g, p, y). */
-    clip-path: inset(0 0 -30% 0);
+    transform: translate3d(0, 110%, 0) rotate(4deg);
   }
 }
 
@@ -116,14 +223,172 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
-@keyframes motion-zoom {
-  from {
-    transform: scale(1.14);
+/* --- Kinowe przejścia między kartami helisy ---------------------------- */
+
+.helix--enabled .helix-panel {
+  /* Wychodząca karta oddala się i gaśnie; nowa wyłania się z głębi po krótkiej
+     pauzie. Bez `filter: blur` — rozmycie dużych kart przycinało słabe GPU
+     (pomiar na Intel UHD 730). `visibility` przełącza się dopiero po zgaśnięciu. */
+  transition:
+    opacity 420ms ease,
+    scale 620ms $ease-out,
+    visibility 0s linear 420ms;
+
+  &:not(.is-active) {
+    scale: 0.92;
+  }
+
+  &.is-active {
+    transition-delay: 140ms, 140ms, 0s;
+
+    /* Świetlna smuga przebiega po ramce karty, gdy ta staje na wprost. */
+    &::after {
+      animation: panel-sweep 1300ms 260ms $ease-in-out both;
+    }
+  }
+
+  &::after {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+        100deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.85) 50%,
+        transparent 70%
+      )
+      no-repeat;
+    background-size: 45% 100%;
+    background-position: -60% 0;
+    pointer-events: none;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    content: '';
   }
 }
 
-/* Karta projektu przechyla się w 3D za kursorem, a odblask podąża za nim
-   (zmienne ustawia PointerEffects). */
+/* Hero nie ma ramki — bez smugi. */
+.helix--enabled .hero.helix-panel::after {
+  display: none;
+}
+
+@keyframes panel-sweep {
+  from {
+    background-position: -60% 0;
+  }
+
+  to {
+    background-position: 160% 0;
+  }
+}
+
+/* --- Technologie: płynny, niekończący się pasek (w trybie helisy) ------- */
+
+.skills-track {
+  display: contents;
+}
+
+/* Kopia listy jest potrzebna tylko do zapętlenia paska. */
+.skills-list [aria-hidden='true'] {
+  display: none;
+}
+
+.helix--enabled {
+  .skills-list {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .skills-track {
+    display: flex;
+    flex: none;
+    gap: inherit;
+    animation: skills-marquee 32s linear infinite;
+  }
+
+  .skills-list [aria-hidden='true'] {
+    display: inline-flex;
+  }
+}
+
+@keyframes skills-marquee {
+  to {
+    /* Połowa szerokości = jedna kopia listy (plus połowa odstępu). */
+    transform: translate3d(calc(-50% - 0.25rem), 0, 0);
+  }
+}
+
+/* --- Efekt „dekodowania" tekstu (ScrambleText) ------------------------- */
+
+.is-scrambling {
+  position: relative;
+  -webkit-text-fill-color: transparent;
+
+  &::after {
+    position: absolute;
+    inset: 0;
+    -webkit-text-fill-color: currentColor;
+    text-align: inherit;
+    white-space: nowrap;
+    content: attr(data-scramble);
+  }
+}
+
+/* --- Projekty: zrzut w ramce laptopa z paralaksą i przewijaniem ekranu --- */
+
+.helix--enabled .project-card__screenshots {
+  overflow: visible;
+  padding: 0.55rem 0.55rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px 12px 5px 5px;
+  background: #0b0e16;
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  /* Paralaksa: --px/--py (−0,5…0,5) ustawia PointerEffects nad kartą. */
+  transform: perspective(1100px) rotateX(calc(5deg - var(--py, 0) * 8deg))
+    rotateY(calc(-9deg + var(--px, 0) * 14deg)) translate3d(0, 0, 0);
+  transition: transform 600ms $ease-out;
+
+  /* Podstawa laptopa. */
+  &::after {
+    position: absolute;
+    right: -8%;
+    bottom: -13px;
+    left: -8%;
+    height: 13px;
+    border-radius: 0 0 14px 14px;
+    background: linear-gradient(180deg, #2b303c, #12151c);
+    box-shadow: 0 18px 30px rgba(0, 0, 0, 0.5);
+    content: '';
+  }
+
+  img {
+    aspect-ratio: 16 / 9.5;
+    height: auto;
+    /* Ekran „sam się przewija" — powolny ruch po wysokości zrzutu. */
+    animation: screen-scroll 16s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes screen-scroll {
+  from {
+    object-position: 50% 0%;
+  }
+
+  to {
+    object-position: 50% 100%;
+  }
+}
+
+/* --- Karta projektu: tilt 3D z odblaskiem ------------------------------ */
+
 .project-card {
   background:
     radial-gradient(
@@ -155,13 +420,15 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     translate 450ms $ease-out;
 }
 
-/* Pierścień podążający za kursorem (natywny kursor zostaje — dostępność). */
+/* --- Pierścień kursora z podpisem kontekstowym -------------------------- */
+
 .cursor-ring {
   position: fixed;
   z-index: 200;
   top: 0;
   left: 0;
   display: none;
+  place-items: center;
   width: 34px;
   height: 34px;
   margin: -17px 0 0 -17px;
@@ -169,16 +436,16 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   border-radius: 50%;
   pointer-events: none;
   transition:
-    width 260ms $ease-out,
-    height 260ms $ease-out,
-    margin 260ms $ease-out,
-    background 260ms ease,
-    border-color 260ms ease,
+    width 300ms $ease-out,
+    height 300ms $ease-out,
+    margin 300ms $ease-out,
+    background 300ms ease,
+    border-color 300ms ease,
     opacity 260ms ease;
   will-change: transform;
 
   &.is-enabled {
-    display: block;
+    display: grid;
   }
 
   &.is-hover {
@@ -189,7 +456,34 @@ $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     background: rgba(255, 255, 255, 0.05);
   }
 
+  &.is-label {
+    width: 88px;
+    height: 88px;
+    margin: -44px 0 0 -44px;
+    border-color: transparent;
+    background: rgba(243, 245, 250, 0.94);
+  }
+
   &.is-idle {
     opacity: 0;
+  }
+
+  &__label {
+    color: #0a0d18;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: scale(0.6);
+    transition:
+      opacity 200ms ease,
+      transform 300ms $ease-out;
+  }
+
+  &.is-label &__label {
+    opacity: 1;
+    transform: none;
   }
 }

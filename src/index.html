@@ -54,6 +54,20 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap"
     />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <script>
+      // Intro marki tylko przy pierwszej wizycie w sesji i bez ograniczonego ruchu —
+      // decyzja przed pierwszym malowaniem, żeby intro nie mignęło.
+      try {
+        if (
+          sessionStorage.getItem('intro-seen') ||
+          matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+          document.documentElement.classList.add('intro-seen');
+        }
+      } catch (e) {
+        document.documentElement.classList.add('intro-seen');
+      }
+    </script>
   </head>
   <body>
     <app-root></app-root>

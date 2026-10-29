@@ -8,9 +8,10 @@ Dwujęzyczne portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe 
 
 - statycznie prerenderowane wersje polska i angielska z osobnymi metadanymi SEO,
 - helisa 3D na szerokich ekranach i czytelny układ pionowy na urządzeniach mobilnych,
-- tło Three.js — żywa architektura systemu sterowana scrollem, z pełnym profilem desktopowym i lżejszym profilem mobilnym,
+- tło Three.js — żywa architektura systemu sterowana scrollem, z pełnym profilem desktopowym i lżejszym profilem mobilnym, na statycznej „zorzy” (miękkie światła i ziarno; w scenie WebGL i — dla trybu awaryjnego — w CSS),
 - automatyczne obniżanie gęstości pikseli tła, gdy GPU nie nadąża — bez utraty płynności,
-- sekwencje wejścia treści każdej karty (`motion.scss`) oraz mikrointerakcje kursora: pierścień, magnetyczne przyciski i przechylanie kart projektów (`pointer-effects.ts`),
+- intro marki przy pierwszej wizycie w sesji, nagłówki wjeżdżające słowo po słowie (`words.pipe.ts`), kinowe przejścia kart ze świetlną smugą, „dekodowanie” nadtytułów i odliczanie statystyk (`scramble-text.ts`), pasek technologii oraz zrzuty projektów w ramce laptopa (`motion.scss`),
+- mikrointerakcje kursora: pierścień z podpisem kontekstowym, magnetyczne przyciski, przechylanie kart projektów z paralaksą (`pointer-effects.ts`), a w tle kursor jako węzeł sieci, który rozświetla i łączy pobliskie usługi,
 - aktywny znacznik aktualnego etapu usług podczas przewijania strony na telefonie,
 - formularz kontaktowy z walidacją i obsługą stanów wysyłania.
 

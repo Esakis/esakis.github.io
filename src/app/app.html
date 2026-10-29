@@ -2,7 +2,15 @@
   <app-space-background [nodeLabels]="copy().systemNodes" />
 }
 
-<div class="cursor-ring" aria-hidden="true" appPointerEffects></div>
+<div class="intro" aria-hidden="true">
+  <div class="intro__mark"><img src="logo.svg" alt="" width="64" height="64" /></div>
+  <div class="intro__counter"></div>
+  <div class="intro__bar"></div>
+</div>
+
+<div class="cursor-ring" aria-hidden="true" appPointerEffects [cursorLabels]="copy().cursorLabels">
+  <span class="cursor-ring__label"></span>
+</div>
 
 <a class="skip-link" [href]="fragmentHref('main-content')">{{ copy().skipLink }}</a>
 
@@ -85,10 +93,18 @@
 
         <div class="hero__content">
           <div class="availability"><span></span>{{ copy().availability }}</div>
-          <p class="eyebrow">{{ copy().eyebrow }}</p>
+          <p class="eyebrow" appScramble>{{ copy().eyebrow }}</p>
           <h1 id="hero-title">
-            {{ copy().heroTitle }}
-            <span>{{ copy().heroHighlight }}</span>
+            <span class="heading-line">
+              @for (word of copy().heroTitle | words; track $index) {
+                <span class="word"><span class="word__inner" [style.--i]="$index">{{ word }}</span></span>{{ ' ' }}
+              }
+            </span>
+            <span class="heading-line heading-line--accent">
+              @for (word of copy().heroHighlight | words; track $index) {
+                <span class="word"><span class="word__inner" [style.--i]="$index + 4">{{ word }}</span></span>{{ ' ' }}
+              }
+            </span>
           </h1>
           <p class="hero__description">{{ copy().heroDescription }}</p>
           <div class="hero__actions">
@@ -160,7 +176,7 @@
         <div class="section-shell stats__inner">
           @for (stat of copy().stats; track stat.label) {
             <div class="stat">
-              <strong>{{ stat.value }}</strong>
+              <strong appScramble>{{ stat.value }}</strong>
               <span>{{ stat.label }}</span>
             </div>
           }
@@ -173,8 +189,12 @@
         aria-labelledby="about-title"
       >
         <div class="section-heading section-heading--split">
-          <p class="section-kicker">{{ copy().aboutKicker }}</p>
-          <h2 id="about-title">{{ copy().aboutTitle }}</h2>
+          <p class="section-kicker" appScramble>{{ copy().aboutKicker }}</p>
+          <h2 id="about-title">
+            @for (word of copy().aboutTitle | words; track $index) {
+              <span class="word"><span class="word__inner" [style.--i]="$index">{{ word }}</span></span>{{ ' ' }}
+            }
+          </h2>
         </div>
 
         <div class="about__grid">
@@ -198,9 +218,15 @@
         <div class="skills-row">
           <span>{{ copy().skillsLabel }}</span>
           <div class="skills-list">
-            @for (skill of copy().skills; track skill) {
-              <span>{{ skill }}</span>
-            }
+            <div class="skills-track">
+              @for (skill of copy().skills; track skill) {
+                <span>{{ skill }}</span>
+              }
+              <!-- Kopia do zapętlenia paska technologii w trybie helisy. -->
+              @for (skill of copy().skills; track skill) {
+                <span aria-hidden="true">{{ skill }}</span>
+              }
+            </div>
           </div>
         </div>
       </section>
@@ -213,8 +239,12 @@
         <div class="section-shell">
           <div class="section-heading section-heading--projects">
             <div>
-              <p class="section-kicker">{{ copy().projectsKicker }}</p>
-              <h2 id="projects-title">{{ copy().projectsTitle }}</h2>
+              <p class="section-kicker" appScramble>{{ copy().projectsKicker }}</p>
+              <h2 id="projects-title">
+                @for (word of copy().projectsTitle | words; track $index) {
+                  <span class="word"><span class="word__inner" [style.--i]="$index">{{ word }}</span></span>{{ ' ' }}
+                }
+              </h2>
             </div>
             <p>{{ copy().projectsIntro }}</p>
           </div>
@@ -329,8 +359,12 @@
         aria-labelledby="services-title"
       >
         <div class="section-heading section-heading--split">
-          <p class="section-kicker">{{ copy().servicesKicker }}</p>
-          <h2 id="services-title">{{ copy().servicesTitle }}</h2>
+          <p class="section-kicker" appScramble>{{ copy().servicesKicker }}</p>
+          <h2 id="services-title">
+            @for (word of copy().servicesTitle | words; track $index) {
+              <span class="word"><span class="word__inner" [style.--i]="$index">{{ word }}</span></span>{{ ' ' }}
+            }
+          </h2>
         </div>
 
         <div class="timeline">
@@ -376,10 +410,18 @@
         <div class="contact__orb" aria-hidden="true"></div>
         <div class="section-shell contact__inner">
           <div class="contact__intro">
-            <p class="section-kicker">{{ copy().contactKicker }}</p>
+            <p class="section-kicker" appScramble>{{ copy().contactKicker }}</p>
             <h2 id="contact-title">
-              {{ copy().contactTitle }}
-              <span>{{ copy().contactHighlight }}</span>
+              <span class="heading-line">
+                @for (word of copy().contactTitle | words; track $index) {
+                  <span class="word"><span class="word__inner" [style.--i]="$index">{{ word }}</span></span>{{ ' ' }}
+                }
+              </span>
+              <span class="heading-line heading-line--accent">
+                @for (word of copy().contactHighlight | words; track $index) {
+                  <span class="word"><span class="word__inner" [style.--i]="$index + 3">{{ word }}</span></span>{{ ' ' }}
+                }
+              </span>
             </h2>
             <p class="contact__text">{{ copy().contactText }}</p>
             <a class="contact__email" [href]="'mailto:' + profile.email">{{ profile.email }}</a>
