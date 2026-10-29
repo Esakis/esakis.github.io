@@ -5,14 +5,14 @@
   --surface-raised: #0b0e22;
   --line: rgba(150, 170, 255, 0.14);
   --line-strong: rgba(150, 170, 255, 0.26);
-  /* Kosmiczna paleta akcentów (nazwy zachowane dla spójności ze stylami). */
-  --lime: #a78bfa; /* akcent główny — mgławicowy fiolet */
-  --cyan: #56d4ff; /* światło gwiazd — jasny cyan */
-  --coral: #ff7ec8; /* akcent ciepły — mgławicowy róż */
-  --purple: #b69cff;
+  /* Stonowana paleta akcentów (nazwy zmiennych zachowane dla spójności ze stylami). */
+  --lime: #9fb8e3; /* akcent główny — stonowany, stalowy błękit */
+  --cyan: #7cc0e6; /* chłodny błękit */
+  --coral: #e2c39a; /* akcent ciepły — piaskowe złoto */
+  --purple: #b4c4e2;
   --star: #d8e2ff;
-  --glow-violet: rgba(167, 139, 250, 0.5);
-  --glow-cyan: rgba(86, 212, 255, 0.5);
+  --glow-violet: rgba(159, 184, 227, 0.4);
+  --glow-cyan: rgba(124, 192, 230, 0.4);
   --panel: #0e122a;
   --font-sans: 'DM Sans', Arial, sans-serif;
   --font-mono: 'Space Mono', Consolas, monospace;
@@ -38,8 +38,8 @@ body {
   margin: 0;
   overflow-x: clip;
   background:
-    radial-gradient(ellipse 80% 60% at 75% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 15% 110%, rgba(46, 197, 255, 0.12), transparent 60%), #05060f;
+    radial-gradient(ellipse 80% 60% at 75% -10%, rgba(70, 100, 160, 0.16), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% 110%, rgba(60, 130, 190, 0.1), transparent 60%), #05060f;
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);

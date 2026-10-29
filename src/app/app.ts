@@ -11,6 +11,7 @@ import {
 import { RouterOutlet } from '@angular/router';
 import { SpaceBackground } from './space-background/space-background';
 import { HelixScroll } from './helix-scroll';
+import { PointerEffects } from './pointer-effects';
 
 type Language = 'pl' | 'en';
 type FormState = 'idle' | 'sending' | 'success' | 'error';
@@ -100,6 +101,14 @@ const CONTENT = {
     terminalFocus: ['Angular', '.NET', 'SQL'],
     terminalStatus: 'otwarty na nowe projekty',
     scrollLabel: 'Przewiń, aby poznać ofertę',
+    systemNodes: [
+      'Aplikacja webowa',
+      'API',
+      'Baza danych',
+      'Kolejka zdarzeń',
+      'Integracje',
+      'Chmura',
+    ],
     statisticsLabel: 'Najważniejsze informacje o firmie',
     stats: [
       { value: '5+', label: 'lat doświadczenia w web developmencie' },
@@ -352,6 +361,7 @@ const CONTENT = {
     terminalFocus: ['Angular', '.NET', 'SQL'],
     terminalStatus: 'available for new projects',
     scrollLabel: 'Scroll to explore the offer',
+    systemNodes: ['Web app', 'API', 'Database', 'Event queue', 'Integrations', 'Cloud'],
     statisticsLabel: 'Key company information',
     stats: [
       { value: '5+', label: 'years in web development' },
@@ -573,9 +583,9 @@ const CONTENT = {
 
 @Component({
   selector: 'app-root',
-  imports: [SpaceBackground, HelixScroll, RouterOutlet],
+  imports: [SpaceBackground, HelixScroll, PointerEffects, RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.scss',
+  styleUrls: ['./app.scss', './motion.scss'],
 })
 export class App {
   private readonly document = inject(DOCUMENT);

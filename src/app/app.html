@@ -1,6 +1,8 @@
 @defer (on idle) {
-  <app-space-background />
+  <app-space-background [nodeLabels]="copy().systemNodes" />
 }
+
+<div class="cursor-ring" aria-hidden="true" appPointerEffects></div>
 
 <a class="skip-link" [href]="fragmentHref('main-content')">{{ copy().skipLink }}</a>
 
@@ -528,14 +530,6 @@
     <div class="footer__details">
       <p>
         © {{ currentYear }} {{ profile.name }}. {{ copy().footerNote }}
-        <span class="footer__credit"
-          >Droga Mleczna: ESO/S. Brunier (<a
-            href="https://creativecommons.org/licenses/by/4.0/"
-            target="_blank"
-            rel="noopener noreferrer"
-            >CC BY 4.0</a
-          >) · Modele planet: NASA</span
-        >
       </p>
       <p id="privacy-policy" class="footer__privacy">
         {{ copy().privacyPolicy }}

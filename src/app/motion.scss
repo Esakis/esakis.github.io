@@ -1,0 +1,195 @@
+/* Ruch treści: sekwencje wejścia uruchamiane, gdy karta staje się aktywna
+   (klasa `is-active` z helisy lub — w układzie płaskim — z IntersectionObserver).
+   `animation-fill-mode: backwards` trzyma stan początkowy tylko na czas
+   opóźnienia; po animacji element wraca do swoich zwykłych stylów (hover itp.).
+   `prefers-reduced-motion` skraca wszystkie animacje globalnie (styles.scss). */
+
+$ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+@mixin enter($name, $delay: 0ms, $duration: 900ms) {
+  animation: $name $duration $delay $ease-out backwards;
+}
+
+/* Kaskada: kolejne elementy listy wchodzą z rosnącym opóźnieniem. */
+@mixin stagger($start, $step: 70ms, $count: 12) {
+  @for $i from 1 through $count {
+    &:nth-child(#{$i}) {
+      animation-delay: $start + ($i - 1) * $step;
+    }
+  }
+}
+
+.helix-panel.is-active {
+  .availability,
+  .eyebrow,
+  .section-kicker,
+  .process__label {
+    @include enter(motion-up, 0ms, 800ms);
+  }
+
+  /* Nagłówki wyjeżdżają spod maski, druga linia z opóźnieniem. */
+  h1,
+  h2 {
+    @include enter(motion-mask, 90ms, 1100ms);
+  }
+
+  h1 span,
+  h2 span {
+    @include enter(motion-mask, 230ms, 1100ms);
+  }
+
+  .hero__description,
+  .about__copy p,
+  .section-heading p:not(.section-kicker),
+  .services__note,
+  .hero__note {
+    @include enter(motion-up, 300ms);
+  }
+
+  .hero__actions > *,
+  .stat,
+  .principle,
+  .timeline-item,
+  .process__grid > *,
+  .contact__field {
+    @include enter(motion-up, 400ms);
+    @include stagger(400ms, 90ms, 6);
+  }
+
+  .skills-list > span,
+  .project-card__tags > * {
+    @include enter(motion-pop, 600ms, 600ms);
+    @include stagger(600ms, 45ms, 14);
+  }
+
+  /* Zrzuty projektów: odsłonięcie „cięciem" z lekkim oddaleniem. */
+  .project-card__visual {
+    @include enter(motion-wipe, 250ms, 1200ms);
+
+    img {
+      @include enter(motion-zoom, 250ms, 1600ms);
+    }
+  }
+
+  .project-card__content > * {
+    @include enter(motion-up, 450ms);
+    @include stagger(450ms, 60ms, 10);
+  }
+}
+
+@keyframes motion-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+}
+
+@keyframes motion-mask {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.45em, 0);
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    /* Ujemny dół: nie ucina dolnych wydłużeń liter (j, g, p, y). */
+    clip-path: inset(0 0 -30% 0);
+  }
+}
+
+@keyframes motion-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.92);
+  }
+}
+
+@keyframes motion-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes motion-zoom {
+  from {
+    transform: scale(1.14);
+  }
+}
+
+/* Karta projektu przechyla się w 3D za kursorem, a odblask podąża za nim
+   (zmienne ustawia PointerEffects). */
+.project-card {
+  background:
+    radial-gradient(
+      520px circle at var(--glare-x, 50%) var(--glare-y, 0%),
+      rgba(255, 255, 255, var(--glare, 0)),
+      transparent 45%
+    ),
+    var(--panel);
+  transform: perspective(1400px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 380ms $ease-out;
+
+  &:hover {
+    transform: perspective(1400px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  }
+}
+
+/* Magnetyczne przyciski: przesunięcie przez właściwość `translate`, żeby nie
+   kolidować z transformacjami hover. */
+.button,
+.contact__button {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    translate 450ms $ease-out;
+}
+
+/* Pierścień podążający za kursorem (natywny kursor zostaje — dostępność). */
+.cursor-ring {
+  position: fixed;
+  z-index: 200;
+  top: 0;
+  left: 0;
+  display: none;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  transition:
+    width 260ms $ease-out,
+    height 260ms $ease-out,
+    margin 260ms $ease-out,
+    background 260ms ease,
+    border-color 260ms ease,
+    opacity 260ms ease;
+  will-change: transform;
+
+  &.is-enabled {
+    display: block;
+  }
+
+  &.is-hover {
+    width: 62px;
+    height: 62px;
+    margin: -31px 0 0 -31px;
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.is-idle {
+    opacity: 0;
+  }
+}

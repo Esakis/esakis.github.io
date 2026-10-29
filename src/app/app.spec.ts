@@ -77,6 +77,7 @@ describe('App', () => {
       expect(localized.form.privacyNotice).toBeTruthy();
       expect(localized.privacyPolicy).toBeTruthy();
       expect(localized.services).toHaveLength(3);
+      expect(localized.systemNodes).toHaveLength(6);
     }
   });
 

@@ -53,6 +53,7 @@ export class HelixScroll {
   private zooming = false; // blokuje aktualizacje sceny na czas animacji
   private zoomTimer: ReturnType<typeof setTimeout> | undefined;
   private activePanelIndex = -1;
+  private revealObserver?: IntersectionObserver;
   private resizeFrameId = 0;
 
   constructor() {
@@ -133,6 +134,19 @@ export class HelixScroll {
     window.addEventListener('popstate', onPopState);
     this.cleanupFns.push(() => window.removeEventListener('popstate', onPopState));
 
+    // Układ płaski (telefony, brak WebGL): sekcje „ożywają" przy wjeździe w kadr.
+    if (typeof IntersectionObserver !== 'undefined') {
+      this.revealObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (this.flat && entry.isIntersecting) entry.target.classList.add('is-active');
+          }
+        },
+        { threshold: 0.15 },
+      );
+      this.cleanupFns.push(() => this.revealObserver?.disconnect());
+    }
+
     this.layout();
     this.index = Math.round(this.progress());
     this.update();
@@ -164,6 +178,10 @@ export class HelixScroll {
       this.activePanelIndex = -1;
       this.host.nativeElement.style.height = '';
       this.panels.forEach((panel) => {
+        // W układzie płaskim `is-active` nadaje observer, gdy sekcja wjedzie w kadr.
+        panel.classList.remove('is-active');
+        this.revealObserver?.unobserve(panel);
+        this.revealObserver?.observe(panel);
         panel.style.transform = '';
         panel.style.opacity = '';
         panel.style.visibility = '';
@@ -239,6 +257,8 @@ export class HelixScroll {
       this.activePanelIndex = activeIndex;
       this.panels.forEach((panel, i) => {
         const active = i === activeIndex;
+        // `is-active` uruchamia sekwencję wejścia treści karty (motion.scss).
+        panel.classList.toggle('is-active', active);
         panel.style.opacity = active ? '1' : '0';
         panel.style.visibility = active ? 'visible' : 'hidden';
         panel.style.pointerEvents = active ? 'auto' : 'none';

@@ -8,15 +8,16 @@ Dwujęzyczne portfolio Łukasza Sroki prezentujące dedykowane aplikacje webowe 
 
 - statycznie prerenderowane wersje polska i angielska z osobnymi metadanymi SEO,
 - helisa 3D na szerokich ekranach i czytelny układ pionowy na urządzeniach mobilnych,
-- kosmiczne tło Three.js z pełnym profilem desktopowym i lżejszym profilem mobilnym,
-- automatyczne ograniczanie modeli, cząstek, rozdzielczości i liczby klatek przy `Save-Data` lub ograniczonych zasobach urządzenia,
+- tło Three.js — żywa architektura systemu sterowana scrollem, z pełnym profilem desktopowym i lżejszym profilem mobilnym,
+- automatyczne obniżanie gęstości pikseli tła, gdy GPU nie nadąża — bez utraty płynności,
+- sekwencje wejścia treści każdej karty (`motion.scss`) oraz mikrointerakcje kursora: pierścień, magnetyczne przyciski i przechylanie kart projektów (`pointer-effects.ts`),
 - aktywny znacznik aktualnego etapu usług podczas przewijania strony na telefonie,
 - formularz kontaktowy z walidacją i obsługą stanów wysyłania.
 
 ## Technologie projektu
 
 - Angular 21, TypeScript i Angular SSR / prerendering statyczny,
-- Three.js i modele GLTF,
+- Three.js i własne shadery GLSL,
 - SCSS,
 - Vitest oraz Angular TestBed.
 
@@ -52,8 +53,8 @@ Workflow GitHub Actions w `.github/workflows/deploy.yml` uruchamia `npm ci`, tes
 src/app/app.*                 komponent aplikacji, treści, responsywność i formularz
 src/app/helix-scroll.ts       przejścia pomiędzy sekcjami na helisie 3D
 src/app/effects-policy.ts     wybór profilu efektów full, compact lub static
-src/app/space-background/     scena Three.js i modele planet
-public/                       obrazy, modele 3D, robots.txt i sitemap.xml
+src/app/space-background/     scena Three.js: architektura systemu (shadery GLSL)
+public/                       obrazy, robots.txt i sitemap.xml
 .github/workflows/            testy, build i wdrożenie GitHub Pages
 ```
 
@@ -65,11 +66,11 @@ Portfolio ma prerenderowane wersje: [polską](https://esakis.github.io/pl/) i [a
 
 Na telefonach helisa przechodzi w pionowy układ, numeracja elementów zachowuje jeden styl, a aktywna kropka osi usług podąża za aktualnie oglądaną pozycją. `prefers-reduced-motion` wyłącza płynne przejścia CSS, zatrzymuje animację tła i korzysta z układu płaskiego.
 
-Scena Three.js korzysta z trzech profili:
+Tło to żywa architektura systemu (`system-graph.ts`): klastry usług — aplikacja webowa, API, baza danych, kolejka zdarzeń, integracje i chmura — połączone łukami przepływów, po których płyną pakiety danych. Każda karta helisy przybliża kamerę do kolejnej warstwy, która się rozświetla i dostaje etykietę w wolnym marginesie obok karty; przy kontakcie świeci cały system. Scena nie pobiera tekstur ani modeli, ruch pakietów liczą shadery, animacja zależy od czasu (nie od liczby klatek), a shadery kompilują się asynchronicznie. Profile:
 
-- `full` zachowuje pełną jakość i modele planet na szerokich ekranach,
-- `compact` działa do `1000px`, przy `Save-Data` lub ograniczonej pamięci i liczbie rdzeni; używa 30 FPS, DPR 1,5, połowy cząstek i nie pobiera modeli planet,
-- `static` obsługuje `prefers-reduced-motion`, renderując pojedynczą klatkę bez planet.
+- `full` — DPR do 1,5, wygładzanie krawędzi, paralaksa kursora,
+- `compact` działa do `1000px`, przy `Save-Data` lub ograniczonej pamięci i liczbie rdzeni; bez wygładzania krawędzi i paralaksy,
+- `static` obsługuje `prefers-reduced-motion`, renderując pojedynczą klatkę.
 
 ## Formularz kontaktowy
 
